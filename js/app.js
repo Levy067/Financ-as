@@ -931,8 +931,18 @@ const renderCharts = () => {
 
 // Simulador de Investimento / Economia
 window.calculateSimulation = () => {
-  const monthlySave = parseCurrencyInput(document.getElementById('sim-monthly-save').value) || 200;
-  const annualRate = parseCurrencyInput(document.getElementById('sim-interest-rate').value) || 10;
+  const saveInput = document.getElementById('sim-monthly-save');
+  const rateInput = document.getElementById('sim-interest-rate');
+
+  const saveStr = saveInput ? saveInput.value.trim() : '';
+  const rateStr = rateInput ? rateInput.value.trim() : '';
+
+  // Se o campo estiver vazio, usa valor sugerido padrão; se o usuário digitou 0, respeita rigorosamente 0!
+  const parsedSave = parseCurrencyInput(saveStr);
+  const monthlySave = saveStr === '' ? 250 : (isNaN(parsedSave) ? 0 : Math.max(0, parsedSave));
+
+  const parsedRate = parseCurrencyInput(rateStr);
+  const annualRate = rateStr === '' ? 10.5 : (isNaN(parsedRate) ? 0 : Math.max(0, parsedRate));
 
   const sim1y = FinancialAnalytics.calculateCompoundGrowth(monthlySave, annualRate, 1);
   const sim3y = FinancialAnalytics.calculateCompoundGrowth(monthlySave, annualRate, 3);
