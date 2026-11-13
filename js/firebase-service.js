@@ -1,10 +1,12 @@
 /**
- * Firebase Database Service (Cloud Firestore)
- * Gerencia a sincronização em tempo real entre o app e o banco de dados na nuvem.
+ * Firebase Database & Authentication Service
+ * Gerencia a sincronização em tempo real e autenticação segura com o Google Firebase.
  */
 
 const FirebaseService = {
   db: null,
+  auth: null,
+  currentUser: null,
   isInitialized: false,
   unsubscribeSnapshot: null,
   status: 'disconnected', // 'connected' | 'connecting' | 'disconnected' | 'error'
@@ -49,12 +51,14 @@ const FirebaseService = {
     localStorage.removeItem('Firebase_User_Config');
     this.isInitialized = false;
     this.db = null;
+    this.auth = null;
+    this.currentUser = null;
     this.status = 'disconnected';
     this.updateUIStatus();
   },
 
   /**
-   * Inicializa a conexão com o Firebase e Firestore
+   * Inicializa a conexão com o Firebase, Firestore e Auth
    */
   async init(onDataCallback) {
     const config = this.getConfig();
@@ -82,6 +86,9 @@ const FirebaseService = {
       }
 
       this.db = firebase.firestore();
+      if (firebase.auth) {
+        this.auth = firebase.auth();
+      }
 
       // Habilitar persistência offline local do Firestore se possível
       try {
@@ -94,7 +101,7 @@ const FirebaseService = {
       this.status = 'connected';
       this.updateUIStatus();
 
-      // Inicia escuta em tempo real
+      // Inicia escuta em tempo real se solicitado e já autenticado
       if (onDataCallback) {
         this.startRealtimeListener(onDataCallback);
       }
@@ -106,6 +113,71 @@ const FirebaseService = {
       this.updateUIStatus('Erro na conexão');
       return false;
     }
+  },
+
+  /**
+   * Inicializa o observador de estado de autenticação
+   */
+  initAuth(onAuthChange) {
+    if (!this.auth) return;
+    this.auth.onAuthStateChanged((user) => {
+      this.currentUser = user;
+      if (onAuthChange) onAuthChange(user);
+    });
+  },
+
+  /**
+   * Login com Email e Senha
+   */
+  async signIn(email, password) {
+    if (!this.auth) throw new Error('Serviço de autenticação não inicializado.');
+    return await this.auth.signInWithEmailAndPassword(email, password);
+  },
+
+  /**
+   * Criar nova conta familiar
+   */
+  async signUp(email, password) {
+    if (!this.auth) throw new Error('Serviço de autenticação não inicializado.');
+    return await this.auth.createUserWithEmailAndPassword(email, password);
+  },
+
+  /**
+   * Desconectar usuário
+   */
+  async signOut() {
+    if (this.unsubscribeSnapshot) {
+      this.unsubscribeSnapshot();
+      this.unsubscribeSnapshot = null;
+    }
+    if (this.auth) {
+      await this.auth.signOut();
+    }
+    this.currentUser = null;
+  },
+
+  /**
+   * Enviar email de redefinição de senha
+   */
+  async sendPasswordReset(email) {
+    if (!this.auth) throw new Error('Serviço de autenticação não inicializado.');
+    return await this.auth.sendPasswordResetEmail(email);
+  },
+
+  /**
+   * Traduz erros do Firebase Auth para português amigável
+   */
+  formatAuthError(error) {
+    const code = error.code || '';
+    if (code === 'auth/invalid-email') return 'Formato de email inválido.';
+    if (code === 'auth/user-not-found') return 'Nenhuma conta encontrada com este email.';
+    if (code === 'auth/wrong-password') return 'Senha incorreta. Tente novamente.';
+    if (code === 'auth/email-already-in-use') return 'Este email já está cadastrado. Alterne para a aba "Entrar".';
+    if (code === 'auth/weak-password') return 'A senha deve ter no mínimo 6 caracteres.';
+    if (code === 'auth/invalid-credential') return 'Email ou senha incorretos.';
+    if (code === 'auth/operation-not-allowed') return 'O provedor de Email/Senha precisa ser ativado no Firebase Console.';
+    if (code === 'auth/too-many-requests') return 'Muitas tentativas incorretas. Aguarde alguns instantes.';
+    return error.message || 'Erro ao autenticar.';
   },
 
   /**
@@ -132,7 +204,6 @@ const FirebaseService = {
       }
     }, (error) => {
       console.warn('Aviso no listener do Firestore:', error);
-      // Se for permissão de regras do Firestore, orientar o usuário
       if (error.code === 'permission-denied') {
         this.updateUIStatus('Ajuste as Regras no Firebase');
       }

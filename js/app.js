@@ -10,6 +10,8 @@ const APP_STATE = {
   expenses: [],
   activeTab: 'dashboard',
   expenseFilter: 'all',
+  authMode: 'login',
+  currentUser: null,
   charts: {}
 };
 
@@ -147,7 +149,7 @@ const getCurrentMonthExpenses = () => {
 };
 
 // Inicialização da Aplicação
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const hasLoaded = loadFromLocalStorage();
   if (!hasLoaded || (APP_STATE.incomes.length === 0 && APP_STATE.expenses.length === 0)) {
     seedDefaultData();
@@ -158,18 +160,11 @@ document.addEventListener('DOMContentLoaded', () => {
   renderAll();
   calculateSimulation();
 
-  // Conectar ao Firebase se credenciais existirem
+  // Inicializar Firebase Auth e Firestore
   if (window.FirebaseService) {
-    FirebaseService.init((cloudIncomes, cloudExpenses) => {
-      APP_STATE.incomes = cloudIncomes;
-      APP_STATE.expenses = cloudExpenses;
-      const data = {
-        incomes: APP_STATE.incomes,
-        expenses: APP_STATE.expenses
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      renderAll();
-      showToast('Nuvem atualizada em tempo real!');
+    await FirebaseService.init();
+    FirebaseService.initAuth((user) => {
+      handleAuthStateChanged(user);
     });
   }
 
@@ -232,6 +227,15 @@ const setupEventListeners = () => {
     formFb.addEventListener('submit', (e) => {
       e.preventDefault();
       handleFirebaseConfigSubmit();
+    });
+  }
+
+  // Submissão do Formulário de Autenticação (Login / Cadastro)
+  const formAuth = document.getElementById('form-auth');
+  if (formAuth) {
+    formAuth.addEventListener('submit', (e) => {
+      e.preventDefault();
+      handleAuthSubmit();
     });
   }
 
@@ -1241,3 +1245,177 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
+
+/* =========================================================
+   CONTROLE DE AUTENTICAÇÃO E SEGURANÇA (FIREBASE AUTH)
+   ========================================================= */
+
+// Trata mudança de estado de autenticação (usuário logado / deslogado)
+function handleAuthStateChanged(user) {
+  APP_STATE.currentUser = user;
+  const overlay = document.getElementById('auth-overlay');
+  const userBadge = document.getElementById('user-profile-badge');
+  const userEmail = document.getElementById('user-display-email');
+  const userInitials = document.getElementById('user-avatar-initials');
+
+  if (user) {
+    // Usuário autenticado com sucesso
+    if (overlay) overlay.classList.add('hidden');
+    if (userBadge) userBadge.classList.remove('hidden');
+    if (userEmail) userEmail.textContent = user.email || 'Usuário';
+    if (userInitials) {
+      const initial = (user.email ? user.email.charAt(0) : 'U').toUpperCase();
+      userInitials.textContent = initial;
+    }
+
+    // Iniciar escuta em tempo real no Firestore agora que está autenticado
+    FirebaseService.startRealtimeListener((cloudIncomes, cloudExpenses) => {
+      APP_STATE.incomes = cloudIncomes;
+      APP_STATE.expenses = cloudExpenses;
+      const data = {
+        incomes: APP_STATE.incomes,
+        expenses: APP_STATE.expenses
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      renderAll();
+      showToast('Nuvem atualizada em tempo real!');
+    });
+
+  } else {
+    // Usuário NÃO autenticado -> exibe tela de login bloqueando a aplicação
+    if (overlay) overlay.classList.remove('hidden');
+    if (userBadge) userBadge.classList.add('hidden');
+  }
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+// Alternar entre modo "Entrar" e "Criar Acesso"
+window.setAuthMode = (mode) => {
+  APP_STATE.authMode = mode;
+  const tabLogin = document.getElementById('tab-login');
+  const tabRegister = document.getElementById('tab-register');
+  const confirmContainer = document.getElementById('auth-confirm-container');
+  const forgotLink = document.getElementById('auth-forgot-link');
+  const submitLabel = document.getElementById('btn-auth-label');
+  const errBox = document.getElementById('auth-error');
+  const succBox = document.getElementById('auth-success');
+
+  if (errBox) errBox.classList.add('hidden');
+  if (succBox) succBox.classList.add('hidden');
+
+  if (mode === 'register') {
+    tabLogin.className = 'py-2 rounded-lg transition text-slate-600 hover:text-slate-900';
+    tabRegister.className = 'py-2 rounded-lg transition bg-white text-slate-800 shadow-sm';
+    confirmContainer.classList.remove('hidden');
+    forgotLink.classList.add('hidden');
+    submitLabel.textContent = 'Criar Conta e Acessar';
+  } else {
+    tabLogin.className = 'py-2 rounded-lg transition bg-white text-slate-800 shadow-sm';
+    tabRegister.className = 'py-2 rounded-lg transition text-slate-600 hover:text-slate-900';
+    confirmContainer.classList.add('hidden');
+    forgotLink.classList.remove('hidden');
+    submitLabel.textContent = 'Entrar no Finanças';
+  }
+
+  if (window.lucide) window.lucide.createIcons();
+};
+
+// Submissão do formulário de autenticação
+async function handleAuthSubmit() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const confirmPass = document.getElementById('auth-confirm-password').value;
+  const submitBtn = document.getElementById('btn-auth-submit');
+  const submitLabel = document.getElementById('btn-auth-label');
+  const errBox = document.getElementById('auth-error');
+  const errMsg = document.getElementById('auth-error-msg');
+  const succBox = document.getElementById('auth-success');
+
+  if (errBox) errBox.classList.add('hidden');
+  if (succBox) succBox.classList.add('hidden');
+
+  if (!email || !password) {
+    showAuthError('Preencha seu email e senha.');
+    return;
+  }
+
+  if (APP_STATE.authMode === 'register') {
+    if (password.length < 6) {
+      showAuthError('A senha precisa ter no mínimo 6 caracteres.');
+      return;
+    }
+    if (password !== confirmPass) {
+      showAuthError('As senhas digitadas não coincidem.');
+      return;
+    }
+  }
+
+  // Estado de carregamento
+  submitBtn.disabled = true;
+  const originalText = submitLabel.textContent;
+  submitLabel.textContent = 'Verificando...';
+
+  try {
+    if (APP_STATE.authMode === 'register') {
+      await FirebaseService.signUp(email, password);
+      showToast('Conta criada com sucesso!');
+    } else {
+      await FirebaseService.signIn(email, password);
+      showToast('Bem-vindo(a) ao Finanças!');
+    }
+  } catch (error) {
+    console.error('Erro de autenticação:', error);
+    const friendlyMsg = FirebaseService.formatAuthError(error);
+    showAuthError(friendlyMsg);
+  } finally {
+    submitBtn.disabled = false;
+    submitLabel.textContent = originalText;
+  }
+}
+
+// Exibir mensagem de erro de autenticação
+function showAuthError(msg) {
+  const errBox = document.getElementById('auth-error');
+  const errMsg = document.getElementById('auth-error-msg');
+  if (errBox && errMsg) {
+    errMsg.textContent = msg;
+    errBox.classList.remove('hidden');
+  }
+  if (window.lucide) window.lucide.createIcons();
+}
+
+// Esqueceu a senha
+window.handleForgotPassword = async () => {
+  const emailInput = document.getElementById('auth-email');
+  const email = emailInput ? emailInput.value.trim() : '';
+
+  if (!email) {
+    showAuthError('Digite seu email no campo acima para enviarmos o link de redefinição.');
+    if (emailInput) emailInput.focus();
+    return;
+  }
+
+  try {
+    await FirebaseService.sendPasswordReset(email);
+    const succBox = document.getElementById('auth-success');
+    const succMsg = document.getElementById('auth-success-msg');
+    const errBox = document.getElementById('auth-error');
+    if (errBox) errBox.classList.add('hidden');
+    if (succBox && succMsg) {
+      succMsg.textContent = `Enviamos um link de redefinição para ${email}. Verifique sua caixa de entrada e spam.`;
+      succBox.classList.remove('hidden');
+    }
+    showToast('Email de redefinição enviado!');
+  } catch (err) {
+    showAuthError(FirebaseService.formatAuthError(err));
+  }
+};
+
+// Logout
+window.handleLogout = async () => {
+  if (confirm('Deseja realmente sair da sua conta no Finanças?')) {
+    await FirebaseService.signOut();
+    showToast('Você saiu da sua conta.');
+  }
+};

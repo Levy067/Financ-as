@@ -53,9 +53,10 @@
     }
   </script>
   
-  <!-- Firebase App & Firestore SDKs (v10 compat) -->
+  <!-- Firebase App, Firestore & Auth SDKs (v10 compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -193,6 +194,22 @@
           <i data-lucide="plus-circle" class="w-4 h-4"></i>
           <span>Nova Despesa</span>
         </button>
+
+        <!-- User Profile Badge & Logout (Shows when logged in) -->
+        <div id="user-profile-badge" class="hidden flex items-center gap-2 pl-3 border-l border-slate-200">
+          <div class="w-8 h-8 rounded-xl bg-terracotta-100 text-terracotta-800 flex items-center justify-center font-bold text-xs" id="user-avatar-initials">
+            L
+          </div>
+          <div class="hidden sm:block text-left">
+            <p id="user-display-email" class="text-xs font-bold text-slate-800 leading-tight max-w-[140px] truncate">usuario@email.com</p>
+            <span class="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Conectado
+            </span>
+          </div>
+          <button onclick="handleLogout()" title="Sair da Conta" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded-lg transition ml-0.5">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -884,6 +901,95 @@
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= AUTH OVERLAY (TELA DE LOGIN PROTEGIDA) ================= -->
+  <div id="auth-overlay" class="fixed inset-0 z-50 bg-[#FAF8F5] flex items-center justify-center p-4">
+    <div class="max-w-md w-full bg-white rounded-3xl border border-[#EAE4DA] shadow-2xl overflow-hidden animate-scaleUp">
+      <!-- Header Terracota com Logo -->
+      <div class="p-6 bg-gradient-to-br from-terracotta-800 to-terracotta-900 text-white text-center relative">
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-white text-terracotta-800 flex items-center justify-center shadow-lg font-black mb-3">
+          <i data-lucide="shield-check" class="w-7 h-7"></i>
+        </div>
+        <h2 class="text-xl font-black tracking-tight">Finanças</h2>
+        <p class="text-xs text-terracotta-200 mt-0.5">Acesso Protegido à Gestão Familiar</p>
+      </div>
+
+      <!-- Formulário de Autenticação -->
+      <div class="p-6 sm:p-8 space-y-5">
+        <!-- Alternador Entrar / Cadastrar -->
+        <div class="grid grid-cols-2 p-1 bg-[#F3EFEA] rounded-xl text-xs font-bold border border-[#EAE4DA]">
+          <button id="tab-login" type="button" onclick="setAuthMode('login')" class="py-2 rounded-lg transition bg-white text-slate-800 shadow-sm">
+            Entrar
+          </button>
+          <button id="tab-register" type="button" onclick="setAuthMode('register')" class="py-2 rounded-lg transition text-slate-600 hover:text-slate-900">
+            Criar Acesso
+          </button>
+        </div>
+
+        <!-- Alerta de Erro -->
+        <div id="auth-error" class="hidden p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-start gap-2">
+          <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5"></i>
+          <span id="auth-error-msg">Erro ao autenticar.</span>
+        </div>
+
+        <!-- Alerta de Sucesso / Info -->
+        <div id="auth-success" class="hidden p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-700 flex items-start gap-2">
+          <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5"></i>
+          <span id="auth-success-msg"></span>
+        </div>
+
+        <form id="form-auth" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Email *</label>
+            <div class="relative">
+              <span class="absolute left-3.5 top-3 text-slate-400">
+                <i data-lucide="mail" class="w-4 h-4"></i>
+              </span>
+              <input type="email" id="auth-email" required placeholder="seu@email.com" class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-terracotta-700 font-medium">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Senha *</label>
+            <div class="relative">
+              <span class="absolute left-3.5 top-3 text-slate-400">
+                <i data-lucide="lock" class="w-4 h-4"></i>
+              </span>
+              <input type="password" id="auth-password" required minlength="6" placeholder="Mínimo 6 caracteres" class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-terracotta-700 font-medium">
+            </div>
+          </div>
+
+          <div id="auth-confirm-container" class="hidden">
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Confirmar Senha *</label>
+            <div class="relative">
+              <span class="absolute left-3.5 top-3 text-slate-400">
+                <i data-lucide="lock" class="w-4 h-4"></i>
+              </span>
+              <input type="password" id="auth-confirm-password" minlength="6" placeholder="Repita a senha" class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-terracotta-700 font-medium">
+            </div>
+          </div>
+
+          <div id="auth-forgot-link" class="flex justify-end">
+            <button type="button" onclick="handleForgotPassword()" class="text-xs text-terracotta-700 hover:text-terracotta-900 font-semibold transition">
+              Esqueceu a senha?
+            </button>
+          </div>
+
+          <button id="btn-auth-submit" type="submit" class="w-full py-3 bg-terracotta-800 hover:bg-terracotta-900 active:scale-95 text-white font-bold text-sm rounded-xl shadow-lg shadow-terracotta-950/20 transition flex items-center justify-center gap-2">
+            <i data-lucide="log-in" class="w-4 h-4"></i>
+            <span id="btn-auth-label">Entrar no Finanças</span>
+          </button>
+        </form>
+
+        <div class="pt-2 border-t border-slate-100 text-center">
+          <p class="text-[11px] text-slate-400 flex items-center justify-center gap-1.5">
+            <i data-lucide="shield" class="w-3.5 h-3.5 text-emerald-600"></i>
+            <span>Protegido por Google Firebase Authentication</span>
+          </p>
+        </div>
       </div>
     </div>
   </div>
