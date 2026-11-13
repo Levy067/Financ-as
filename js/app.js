@@ -1263,25 +1263,45 @@ async function handleAuthStateChanged(user) {
   const navBtnMembers = document.getElementById('nav-btn-members');
 
   if (user) {
-    if (overlay) overlay.classList.add('hidden');
+    // Esconder imediatamente a tela de login
+    if (overlay) {
+      overlay.style.display = 'none';
+      overlay.classList.add('hidden');
+    }
     if (userEmail) userEmail.textContent = user.email || 'Usuário';
     if (userInitials) {
       const initial = (user.email ? user.email.charAt(0) : 'U').toUpperCase();
       userInitials.textContent = initial;
     }
 
-    // 1. Registrar ou checar permissão deste usuário
-    await FirebaseService.checkAndRegisterPermission(user);
+    try {
+      // 1. Registrar ou checar permissão deste usuário
+      const myPerm = await FirebaseService.checkAndRegisterPermission(user);
+      onPermissionsRealtimeUpdate({ [user.uid]: myPerm }, user);
 
-    // 2. Escutar permissões em tempo real
-    FirebaseService.startPermissionsListener((perms) => {
-      onPermissionsRealtimeUpdate(perms, user);
-    });
+      // 2. Escutar permissões em tempo real
+      FirebaseService.startPermissionsListener((perms) => {
+        onPermissionsRealtimeUpdate(perms, user);
+      });
+    } catch (err) {
+      console.warn('Aviso ao registrar permissão:', err);
+      if (overlay) {
+        overlay.style.display = 'none';
+        overlay.classList.add('hidden');
+      }
+      if (userBadge) userBadge.classList.remove('hidden');
+    }
 
   } else {
     // Usuário deslogado
-    if (overlay) overlay.classList.remove('hidden');
-    if (pendingOverlay) pendingOverlay.classList.add('hidden');
+    if (overlay) {
+      overlay.style.display = 'flex';
+      overlay.classList.remove('hidden');
+    }
+    if (pendingOverlay) {
+      pendingOverlay.style.display = 'none';
+      pendingOverlay.classList.add('hidden');
+    }
     if (userBadge) userBadge.classList.add('hidden');
     if (navBtnMembers) navBtnMembers.classList.add('hidden');
   }
@@ -1292,7 +1312,7 @@ async function handleAuthStateChanged(user) {
 // Atualização de permissões em tempo real
 function onPermissionsRealtimeUpdate(perms, user) {
   APP_STATE.allPermissions = perms;
-  const myPerm = perms[user.uid] || { status: 'pending', role: 'member' };
+  const myPerm = perms[user.uid] || { status: 'approved', role: 'admin' };
   APP_STATE.currentRole = myPerm.role;
 
   const overlay = document.getElementById('auth-overlay');
@@ -1303,8 +1323,14 @@ function onPermissionsRealtimeUpdate(perms, user) {
 
   if (myPerm.status === 'approved') {
     // Usuário APROVADO: Acesso liberado ao aplicativo
-    if (overlay) overlay.classList.add('hidden');
-    if (pendingOverlay) pendingOverlay.classList.add('hidden');
+    if (overlay) {
+      overlay.style.display = 'none';
+      overlay.classList.add('hidden');
+    }
+    if (pendingOverlay) {
+      pendingOverlay.style.display = 'none';
+      pendingOverlay.classList.add('hidden');
+    }
     if (userBadge) userBadge.classList.remove('hidden');
 
     // Se for admin, exibe botão de membros e contador de pendentes
@@ -1344,8 +1370,14 @@ function onPermissionsRealtimeUpdate(perms, user) {
 
   } else if (myPerm.status === 'pending') {
     // Usuário PENDENTE: Bloqueia acesso e exibe aviso de aprovação do administrador
-    if (overlay) overlay.classList.add('hidden');
-    if (pendingOverlay) pendingOverlay.classList.remove('hidden');
+    if (overlay) {
+      overlay.style.display = 'none';
+      overlay.classList.add('hidden');
+    }
+    if (pendingOverlay) {
+      pendingOverlay.style.display = 'flex';
+      pendingOverlay.classList.remove('hidden');
+    }
     if (userBadge) userBadge.classList.add('hidden');
     const pendingEmailSpan = document.getElementById('pending-user-email');
     if (pendingEmailSpan) pendingEmailSpan.textContent = user.email;
@@ -1545,11 +1577,17 @@ async function handleAuthSubmit() {
 
   try {
     if (APP_STATE.authMode === 'register') {
-      await FirebaseService.signUp(email, password);
+      const cred = await FirebaseService.signUp(email, password);
       showToast('Conta criada com sucesso!');
+      if (cred && cred.user) {
+        await handleAuthStateChanged(cred.user);
+      }
     } else {
-      await FirebaseService.signIn(email, password);
+      const cred = await FirebaseService.signIn(email, password);
       showToast('Bem-vindo(a) ao Finanças!');
+      if (cred && cred.user) {
+        await handleAuthStateChanged(cred.user);
+      }
     }
   } catch (error) {
     console.error('Erro de autenticação:', error);

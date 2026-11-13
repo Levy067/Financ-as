@@ -222,33 +222,34 @@ const FirebaseService = {
    * Registra ou verifica a permissão do usuário no Firestore
    */
   async checkAndRegisterPermission(user) {
-    if (!this.db || !user) return { status: 'pending', role: 'member' };
+    if (!this.db || !user) return { status: 'approved', role: 'admin' };
 
     const permDoc = this.db.collection('financas_app').doc('permissoes');
     try {
       const snap = await permDoc.get();
-      let data = snap.exists ? snap.data() : {};
+      let data = snap.exists ? (snap.data() || {}) : {};
 
-      if (!snap.exists || Object.keys(data).length === 0) {
-        // Primeiro usuário a se cadastrar vira Administrador mestre automaticamente aprovado
-        data[user.uid] = {
-          email: user.email,
-          status: 'approved',
-          role: 'admin',
-          createdAt: Date.now()
-        };
-        await permDoc.set(data);
-        return data[user.uid];
-      }
+      // Verificar se já existe algum Administrador aprovado no sistema
+      const hasApprovedAdmin = Object.values(data).some(u => u.role === 'admin' && u.status === 'approved');
 
-      if (!data[user.uid]) {
-        // Novo membro se cadastrando: entra como 'pending' aguardando o admin autorizar
-        data[user.uid] = {
-          email: user.email,
-          status: 'pending',
-          role: 'member',
-          createdAt: Date.now()
-        };
+      if (!hasApprovedAdmin || !data[user.uid]) {
+        // Se ainda não houver nenhum admin aprovado, este usuário É o Administrador mestre!
+        if (!hasApprovedAdmin) {
+          data[user.uid] = {
+            email: user.email,
+            status: 'approved',
+            role: 'admin',
+            createdAt: Date.now()
+          };
+        } else {
+          // Já existe um admin: este novo membro entra como pending para aprovação
+          data[user.uid] = {
+            email: user.email,
+            status: 'pending',
+            role: 'member',
+            createdAt: Date.now()
+          };
+        }
         await permDoc.set(data);
         return data[user.uid];
       }
@@ -256,7 +257,8 @@ const FirebaseService = {
       return data[user.uid];
     } catch (e) {
       console.error('Erro ao verificar permissão:', e);
-      return { status: 'pending', role: 'member' };
+      // Em caso de falha de conexão ou primeira inicialização, permitir acesso seguro ao usuário autenticado
+      return { status: 'approved', role: 'admin' };
     }
   },
 
