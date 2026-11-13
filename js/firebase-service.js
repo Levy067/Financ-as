@@ -181,15 +181,20 @@ const FirebaseService = {
    */
   async signOut() {
     if (this.unsubscribeSnapshot) {
-      this.unsubscribeSnapshot();
+      try { this.unsubscribeSnapshot(); } catch (e) {}
       this.unsubscribeSnapshot = null;
     }
     if (this.unsubscribePermissions) {
-      this.unsubscribePermissions();
+      try { this.unsubscribePermissions(); } catch (e) {}
       this.unsubscribePermissions = null;
     }
-    if (this.auth) {
-      await this.auth.signOut();
+    try {
+      const auth = await this.getAuth();
+      if (auth) {
+        await auth.signOut();
+      }
+    } catch (e) {
+      console.warn('Erro ao deslogar do Firebase Auth:', e);
     }
     this.currentUser = null;
   },

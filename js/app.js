@@ -175,11 +175,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Inicializar Firebase Auth e Firestore
   const service = window.FirebaseService || (typeof FirebaseService !== 'undefined' ? FirebaseService : null);
   if (service) {
-    await service.init();
-    service.initAuth((user) => {
-      handleAuthStateChanged(user);
-    });
+    try {
+      await service.init();
+      service.initAuth((user) => {
+        handleAuthStateChanged(user);
+      });
+    } catch (e) {
+      console.error('Erro na inicialização do Firebase:', e);
+      handleAuthStateChanged(null);
+    }
+  } else {
+    handleAuthStateChanged(null);
   }
+
+  // Fallback de segurança: se após 3 segundos o loading ainda estiver visível e não houver usuário logado, revela o formulário
+  setTimeout(() => {
+    const loadingState = document.getElementById('auth-loading-state');
+    const formContainer = document.getElementById('auth-form-container');
+    if (loadingState && !loadingState.classList.contains('hidden') && !APP_STATE.currentUser) {
+      loadingState.classList.add('hidden');
+      if (formContainer) formContainer.classList.remove('hidden');
+    }
+  }, 3000);
 
   // Inicializar Lucide Icons
   if (window.lucide) {
@@ -283,6 +300,25 @@ const setupEventListeners = () => {
   if (mobileBtn && navMenu) {
     mobileBtn.addEventListener('click', () => {
       navMenu.classList.toggle('hidden');
+    });
+  }
+
+  // Inputs do simulador: recalcular dinamicamente ao digitar ou alterar
+  const simSave = document.getElementById('sim-monthly-save');
+  const simRate = document.getElementById('sim-interest-rate');
+  const btnRecalc = document.getElementById('btn-recalculate-sim');
+  if (simSave) {
+    simSave.addEventListener('input', () => calculateSimulation());
+    simSave.addEventListener('change', () => calculateSimulation());
+  }
+  if (simRate) {
+    simRate.addEventListener('input', () => calculateSimulation());
+    simRate.addEventListener('change', () => calculateSimulation());
+  }
+  if (btnRecalc) {
+    btnRecalc.addEventListener('click', (e) => {
+      e.preventDefault();
+      handleRecalculateSimulation();
     });
   }
 };
@@ -929,6 +965,12 @@ const renderCharts = () => {
   }
 };
 
+// Botão de Recalcular com Feedback Visual
+window.handleRecalculateSimulation = () => {
+  calculateSimulation();
+  showToast('Projeção recalculada com sucesso!');
+};
+
 // Simulador de Investimento / Economia
 window.calculateSimulation = () => {
   const saveInput = document.getElementById('sim-monthly-save');
@@ -948,14 +990,21 @@ window.calculateSimulation = () => {
   const sim3y = FinancialAnalytics.calculateCompoundGrowth(monthlySave, annualRate, 3);
   const sim5y = FinancialAnalytics.calculateCompoundGrowth(monthlySave, annualRate, 5);
 
-  document.getElementById('sim-res-1y').textContent = formatCurrency(sim1y.finalBalance);
-  document.getElementById('sim-profit-1y').textContent = `+${formatCurrency(sim1y.profit)} de juros`;
+  const res1y = document.getElementById('sim-res-1y');
+  const profit1y = document.getElementById('sim-profit-1y');
+  const res3y = document.getElementById('sim-res-3y');
+  const profit3y = document.getElementById('sim-profit-3y');
+  const res5y = document.getElementById('sim-res-5y');
+  const profit5y = document.getElementById('sim-profit-5y');
 
-  document.getElementById('sim-res-3y').textContent = formatCurrency(sim3y.finalBalance);
-  document.getElementById('sim-profit-3y').textContent = `+${formatCurrency(sim3y.profit)} de juros`;
+  if (res1y) res1y.textContent = formatCurrency(sim1y.finalBalance);
+  if (profit1y) profit1y.textContent = sim1y.profit > 0.009 ? `+${formatCurrency(sim1y.profit)} de juros` : `${formatCurrency(0)} de juros`;
 
-  document.getElementById('sim-res-5y').textContent = formatCurrency(sim5y.finalBalance);
-  document.getElementById('sim-profit-5y').textContent = `+${formatCurrency(sim5y.profit)} de juros`;
+  if (res3y) res3y.textContent = formatCurrency(sim3y.finalBalance);
+  if (profit3y) profit3y.textContent = sim3y.profit > 0.009 ? `+${formatCurrency(sim3y.profit)} de juros` : `${formatCurrency(0)} de juros`;
+
+  if (res5y) res5y.textContent = formatCurrency(sim5y.finalBalance);
+  if (profit5y) profit5y.textContent = sim5y.profit > 0.009 ? `+${formatCurrency(sim5y.profit)} de juros` : `${formatCurrency(0)} de juros`;
 
   // Gráfico da Simulação
   const simCanvas = document.getElementById('simulationChart');
@@ -1418,6 +1467,8 @@ function escapeHtml(str) {
 async function handleAuthStateChanged(user) {
   APP_STATE.currentUser = user;
   const overlay = document.getElementById('auth-overlay');
+  const loadingState = document.getElementById('auth-loading-state');
+  const formContainer = document.getElementById('auth-form-container');
   const userBadge = document.getElementById('user-profile-badge');
   const userBadgeMob = document.getElementById('user-profile-badge-mob');
   const userEmail = document.getElementById('user-display-email');
@@ -1427,11 +1478,17 @@ async function handleAuthStateChanged(user) {
   const navBtnMembers = document.getElementById('nav-btn-members');
   const mobBtnMembers = document.getElementById('mobile-btn-members');
 
+  // Concluiu a checagem inicial de autenticação
+  if (loadingState) loadingState.classList.add('hidden');
+
   if (user) {
     // Esconder imediatamente a tela de login
     if (overlay) {
       overlay.style.display = 'none';
       overlay.classList.add('hidden');
+    }
+    if (formContainer) {
+      formContainer.classList.add('hidden');
     }
     if (userEmail) userEmail.textContent = user.email || 'Usuário';
     const initial = (user.email ? user.email.charAt(0) : 'U').toUpperCase();
@@ -1458,7 +1515,10 @@ async function handleAuthStateChanged(user) {
     }
 
   } else {
-    // Usuário deslogado
+    // Usuário deslogado: exibe formulário de login limpo e sem loading
+    if (formContainer) {
+      formContainer.classList.remove('hidden');
+    }
     if (overlay) {
       overlay.style.display = 'flex';
       overlay.classList.remove('hidden');
@@ -1823,7 +1883,49 @@ window.handleForgotPassword = async () => {
 // Logout
 window.handleLogout = async () => {
   if (confirm('Deseja realmente sair da sua conta no Finanças?')) {
-    await FirebaseService.signOut();
+    // 1. Fechar todos os modais abertos
+    ['expense', 'income', 'firebase', 'members', 'mobile-more'].forEach(m => closeModal(m));
+
+    // 2. Limpar o formulário de login para não haver preenchimento fantasma ou retenção de credenciais
+    const formAuth = document.getElementById('form-auth');
+    if (formAuth) formAuth.reset();
+    const emailInput = document.getElementById('auth-email');
+    const passInput = document.getElementById('auth-password');
+    const confirmInput = document.getElementById('auth-confirm-password');
+    if (emailInput) emailInput.value = '';
+    if (passInput) passInput.value = '';
+    if (confirmInput) confirmInput.value = '';
+
+    const errBox = document.getElementById('auth-error');
+    const succBox = document.getElementById('auth-success');
+    if (errBox) errBox.classList.add('hidden');
+    if (succBox) succBox.classList.add('hidden');
+
+    // 3. Resetar para aba login
+    setAuthMode('login');
+
+    // 4. Resetar estado do app
+    APP_STATE.currentUser = null;
+    APP_STATE.currentRole = 'admin';
+
+    // 5. Exibir tela de login com formulário pronto (sem loading)
+    const overlay = document.getElementById('auth-overlay');
+    const loadingState = document.getElementById('auth-loading-state');
+    const formContainer = document.getElementById('auth-form-container');
+    if (loadingState) loadingState.classList.add('hidden');
+    if (formContainer) formContainer.classList.remove('hidden');
+    if (overlay) {
+      overlay.style.display = 'flex';
+      overlay.classList.remove('hidden');
+    }
+
+    // 6. SignOut do Firebase
+    try {
+      await FirebaseService.signOut();
+    } catch (e) {
+      console.warn('SignOut error:', e);
+    }
+
     showToast('Você saiu da sua conta.');
   }
 };

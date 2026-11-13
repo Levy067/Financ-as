@@ -665,8 +665,9 @@
             </div>
 
             <div class="flex items-end">
-              <button onclick="calculateSimulation()" class="w-full py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs rounded-xl shadow-sm transition">
-                Recalcular Projeção
+              <button type="button" id="btn-recalculate-sim" onclick="handleRecalculateSimulation()" class="w-full py-2.5 bg-sky-600 hover:bg-sky-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-1.5">
+                <i data-lucide="calculator" class="w-4 h-4"></i>
+                <span>Recalcular Projeção</span>
               </button>
             </div>
           </div>
@@ -997,8 +998,14 @@
         <p class="text-xs text-terracotta-200 mt-0.5">Acesso Protegido à Gestão Familiar</p>
       </div>
 
-      <!-- Formulário de Autenticação -->
-      <div class="p-6 sm:p-8 space-y-5">
+      <!-- Estado de Verificação Inicial -->
+      <div id="auth-loading-state" class="p-8 text-center space-y-3">
+        <div class="w-8 h-8 mx-auto border-3 border-terracotta-800 border-t-transparent rounded-full animate-spin"></div>
+        <p class="text-xs font-semibold text-slate-600">Verificando sessão segura...</p>
+      </div>
+
+      <!-- Formulário de Autenticação (Aparece somente se não houver sessão ativa) -->
+      <div id="auth-form-container" class="hidden p-6 sm:p-8 space-y-5">
         <!-- Alternador Entrar / Cadastrar -->
         <div class="grid grid-cols-2 p-1 bg-[#F3EFEA] rounded-xl text-xs font-bold border border-[#EAE4DA]">
           <button id="tab-login" type="button" onclick="setAuthMode('login')" class="py-2 rounded-lg transition bg-white text-slate-800 shadow-sm">
@@ -1021,7 +1028,7 @@
           <span id="auth-success-msg"></span>
         </div>
 
-        <form id="form-auth" class="space-y-4">
+        <form id="form-auth" class="space-y-4" autocomplete="off">
           <div>
             <label class="block text-xs font-semibold text-slate-700 mb-1">Email *</label>
             <div class="relative">
@@ -1252,9 +1259,9 @@
   </div>
 
   <!-- Scripts -->
-  <script src="js/firebase-config.js?v=20261113_5"></script>
-  <script src="js/firebase-service.js?v=20261113_5"></script>
-  <script src="js/analytics.js?v=20261113_5"></script>
-  <script src="js/app.js?v=20261113_5"></script>
+  <script src="js/firebase-config.js?v=20261113_6"></script>
+  <script src="js/firebase-service.js?v=20261113_6"></script>
+  <script src="js/analytics.js?v=20261113_6"></script>
+  <script src="js/app.js?v=20261113_6"></script>
 </body>
 </html>
