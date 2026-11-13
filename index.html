@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Finanças - Gestão</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            terracotta: {
+              50: '#fdf6f4',
+              100: '#fbebe7',
+              200: '#f6d5cc',
+              300: '#efb4a4',
+              400: '#e58b73',
+              500: '#d9684b',
+              600: '#c54f32',
+              700: '#a33d25',
+              800: '#873624',
+              900: '#702d1e',
+              950: '#42170e',
+            },
+            offwhite: {
+              DEFAULT: '#FAF8F5',
+              50: '#FDFCFB',
+              100: '#FAF8F5',
+              200: '#F3EFEA',
+              300: '#EAE4DA',
+              400: '#DDD5C7'
+            },
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            },
+            income: '#10b981',
+            expense: '#f43f5e',
+            warning: '#f59e0b',
+            info: '#06b6d4'
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Firebase App & Firestore SDKs (v10 compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-[#FAF8F5] text-slate-800 antialiased font-sans min-h-screen flex flex-col md:flex-row">
+
+  <!-- ================= SIDEBAR (TERRACOTA) ================= -->
+  <aside id="sidebar" class="w-full md:w-64 bg-terracotta-800 text-stone-100 flex-shrink-0 flex flex-col justify-between border-r border-terracotta-900 z-30 transition-all duration-300 shadow-xl shadow-terracotta-950/20">
+    <div>
+      <!-- Brand Logo & Header -->
+      <div class="p-5 flex items-center justify-between border-b border-terracotta-700/60">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-white text-terracotta-700 flex items-center justify-center shadow-md font-bold">
+            <i data-lucide="wallet" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h1 class="font-bold text-base text-white tracking-tight leading-none">Finanças</h1>
+            <span class="text-xs text-terracotta-200">Gestão</span>
+          </div>
+        </div>
+        <button id="mobile-menu-btn" class="md:hidden p-1.5 rounded-lg text-terracotta-200 hover:text-white hover:bg-terracotta-700">
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Navigation Menu -->
+      <nav id="nav-menu" class="p-4 space-y-1.5 hidden md:block">
+        <button data-tab="dashboard" class="nav-item active w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors">
+          <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+          <span>Visão Geral</span>
+        </button>
+
+        <button data-tab="receitas" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors text-stone-200">
+          <i data-lucide="trending-up" class="w-4 h-4 text-emerald-300"></i>
+          <span>Receitas do Mês</span>
+          <span id="badge-receitas-count" class="ml-auto text-xs py-0.5 px-2 bg-terracotta-900/80 rounded-full text-stone-200 font-semibold">0</span>
+        </button>
+
+        <button data-tab="despesas" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors text-stone-200">
+          <i data-lucide="receipt" class="w-4 h-4 text-rose-300"></i>
+          <span>Despesas Fixas</span>
+          <span id="badge-despesas-count" class="ml-auto text-xs py-0.5 px-2 bg-terracotta-900/80 rounded-full text-stone-200 font-semibold">0</span>
+        </button>
+
+        <button data-tab="economia" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors text-stone-200 relative">
+          <i data-lucide="sparkles" class="w-4 h-4 text-amber-300"></i>
+          <span>Dicas & Economia</span>
+          <span class="ml-auto flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-amber-300 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
+          </span>
+        </button>
+
+        <button data-tab="simulador" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors text-stone-200">
+          <i data-lucide="calculator" class="w-4 h-4 text-sky-300"></i>
+          <span>Simulador de Metas</span>
+        </button>
+
+        <button data-tab="relatorios" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors text-stone-200">
+          <i data-lucide="pie-chart" class="w-4 h-4 text-purple-300"></i>
+          <span>Gráficos & Análise</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Sidebar Footer / Quick Info -->
+    <div class="p-4 border-t border-terracotta-700/60 hidden md:block">
+      <div class="p-3 bg-terracotta-900/70 rounded-xl border border-terracotta-700/50 mb-3 shadow-inner">
+        <p class="text-xs text-terracotta-200 font-medium">Balanço do Mês Atual</p>
+        <p id="sidebar-balance-preview" class="text-lg font-bold text-emerald-300 mt-0.5">R$ 0,00</p>
+        <div class="mt-2 text-[11px] text-terracotta-200 flex justify-between">
+          <span>Comprometimento:</span>
+          <span id="sidebar-commitment-rate" class="font-semibold text-white">0%</span>
+        </div>
+      </div>
+      
+      <div class="flex items-center justify-between text-xs text-terracotta-200 px-1">
+        <button id="btn-export-backup" class="hover:text-white flex items-center gap-1.5 transition">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i> Backup
+        </button>
+        <label class="hover:text-white flex items-center gap-1.5 cursor-pointer transition">
+          <i data-lucide="upload" class="w-3.5 h-3.5"></i> Restaurar
+          <input type="file" id="file-import-backup" accept=".json" class="hidden">
+        </label>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN CONTENT AREA (OFF-WHITE) ================= -->
+  <main class="flex-1 flex flex-col min-w-0 bg-[#FAF8F5] min-h-screen">
+    
+    <!-- Top Header Bar -->
+    <header class="bg-white/90 backdrop-blur-md border-b border-[#EAE4DA] sticky top-0 z-20 px-6 py-4 flex flex-wrap items-center justify-between gap-4 shadow-sm">
+      <div class="flex items-center gap-3">
+        <div>
+          <h2 id="page-title" class="text-xl font-bold text-slate-800 leading-tight">Visão Geral</h2>
+          <p id="page-subtitle" class="text-xs text-slate-500">Resumo financeiro e indicadores de saúde do orçamento</p>
+        </div>
+      </div>
+
+      <!-- Controls: Month Selector and Action Buttons -->
+      <div class="flex items-center gap-3 flex-wrap">
+        <!-- Month and Year Selector -->
+        <div class="flex items-center bg-[#F3EFEA] p-1 rounded-xl border border-[#EAE4DA] text-sm shadow-inner">
+          <button id="btn-prev-month" title="Mês Anterior" class="p-1.5 hover:bg-white rounded-lg text-slate-700 hover:text-slate-900 transition">
+            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+          </button>
+          <span id="current-month-display" class="font-semibold px-3 text-slate-800 min-w-[130px] text-center select-none">
+            Novembro 2026
+          </span>
+          <button id="btn-next-month" title="Próximo Mês" class="p-1.5 hover:bg-white rounded-lg text-slate-700 hover:text-slate-900 transition">
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <!-- Firebase Cloud Status Pill -->
+        <button id="firebase-status-pill" onclick="openModal('firebase')" class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold bg-stone-100 text-stone-700 border border-stone-300 shadow-sm cursor-pointer hover:bg-stone-200 transition">
+          <span id="firebase-status-dot" class="w-2 h-2 rounded-full bg-stone-400"></span>
+          <span id="firebase-status-label">Conectar Firebase</span>
+        </button>
+
+        <!-- Quick Add Buttons -->
+        <button id="btn-quick-income" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-medium text-xs rounded-xl shadow-sm shadow-emerald-500/20 transition active:scale-95">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span>Nova Receita</span>
+        </button>
+
+        <button id="btn-quick-expense" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-500 hover:bg-rose-600 text-white font-medium text-xs rounded-xl shadow-sm shadow-rose-500/20 transition active:scale-95">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span>Nova Despesa</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- App Dynamic Tabs Content Container -->
+    <div class="p-6 flex-1 max-w-7xl w-full mx-auto space-y-6">
+
+      <!-- ================= TAB: DASHBOARD ================= -->
+      <section id="tab-dashboard" class="tab-content active space-y-6">
+        
+        <!-- Summary Stat Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Total Income -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden group hover:border-emerald-300 transition">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Receitas Recebidas</span>
+              <div class="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                <i data-lucide="arrow-down-left" class="w-5 h-5"></i>
+              </div>
+            </div>
+            <p id="dash-total-income" class="text-2xl font-black text-slate-800">R$ 0,00</p>
+            <p class="text-xs text-emerald-600 mt-2 font-medium flex items-center gap-1">
+              <span id="dash-income-count">0 entradas registradas</span>
+            </p>
+          </div>
+
+          <!-- Total Fixed Expenses -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden group hover:border-rose-300 transition">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Despesas Fixas</span>
+              <div class="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600">
+                <i data-lucide="arrow-up-right" class="w-5 h-5"></i>
+              </div>
+            </div>
+            <p id="dash-total-expenses" class="text-2xl font-black text-slate-800">R$ 0,00</p>
+            <div class="flex items-center justify-between mt-2 text-xs text-slate-500">
+              <span id="dash-paid-summary">0 pagas</span>
+              <span id="dash-pending-summary" class="text-rose-500 font-medium">0 pendentes</span>
+            </div>
+          </div>
+
+          <!-- Available Balance -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden group hover:border-blue-300 transition">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Saldo Líquido</span>
+              <div id="dash-balance-icon-bg" class="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                <i data-lucide="scale" class="w-5 h-5"></i>
+              </div>
+            </div>
+            <p id="dash-total-balance" class="text-2xl font-black text-blue-600">R$ 0,00</p>
+            <p id="dash-balance-status" class="text-xs text-slate-500 mt-2 font-medium">
+              Calculado: Receitas - Despesas
+            </p>
+          </div>
+
+          <!-- Health / Commitment Index -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden group hover:border-indigo-300 transition">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Comprometimento</span>
+              <div class="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                <i data-lucide="shield-alert" class="w-5 h-5"></i>
+              </div>
+            </div>
+            <div class="flex items-baseline gap-2">
+              <p id="dash-commitment-percent" class="text-2xl font-black text-slate-800">0%</p>
+              <span id="dash-health-badge" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">Neutro</span>
+            </div>
+            <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden mt-3">
+              <div id="dash-progress-bar" class="bg-blue-600 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Smart Banner (Preview of Top Recommendation) -->
+        <div id="top-smart-banner" class="bg-gradient-to-r from-amber-500/10 via-amber-50 to-orange-50 border border-amber-200 p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div class="flex items-start gap-3">
+            <div class="p-2.5 bg-amber-500 text-white rounded-xl shadow-sm mt-0.5">
+              <i data-lucide="lightbulb" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-amber-800 bg-amber-200/70 px-2 py-0.5 rounded-md">Diagnóstico Financeiro</span>
+                <span id="banner-tag" class="text-xs text-amber-700 font-semibold">Análise de Economia</span>
+              </div>
+              <p id="banner-title" class="text-sm font-bold text-slate-800 mt-1">Nenhum dado cadastrado ainda</p>
+              <p id="banner-desc" class="text-xs text-slate-600 mt-0.5">Adicione sua renda e despesas fixas para receber recomendações automáticas de redução de custos.</p>
+            </div>
+          </div>
+          <button onclick="switchTab('economia')" class="whitespace-nowrap px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-xl transition shadow-sm shadow-amber-500/30">
+            Ver Todas as Recomendações &rarr;
+          </button>
+        </div>
+
+        <!-- 2 Columns: Recent Expenses List & Quick Charts -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          <!-- Recent Expenses & Status (2 cols) -->
+          <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div class="flex items-center gap-2">
+                <div class="p-1.5 bg-rose-50 text-rose-500 rounded-lg">
+                  <i data-lucide="check-square" class="w-4 h-4"></i>
+                </div>
+                <h3 class="font-bold text-slate-800 text-sm">Status das Contas Fixas do Mês</h3>
+              </div>
+              <button onclick="switchTab('despesas')" class="text-xs font-semibold text-blue-600 hover:underline">
+                Gerenciar Todas &rarr;
+              </button>
+            </div>
+
+            <!-- List of Expenses in Dashboard -->
+            <div id="dash-expenses-list" class="divide-y divide-slate-100">
+              <!-- Dynamically rendered -->
+              <p class="text-center py-8 text-sm text-slate-400">Nenhuma despesa fixa cadastrada para este mês.</p>
+            </div>
+          </div>
+
+          <!-- Mini Chart: Category Breakdown (1 col) -->
+          <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 border-b border-slate-100 pb-3 mb-4">
+                <div class="p-1.5 bg-blue-50 text-blue-500 rounded-lg">
+                  <i data-lucide="pie-chart" class="w-4 h-4"></i>
+                </div>
+                <h3 class="font-bold text-slate-800 text-sm">Distribuição das Despesas</h3>
+              </div>
+              <div class="relative w-full h-52 flex items-center justify-center">
+                <canvas id="miniCategoryChart"></canvas>
+                <div id="chart-empty-msg" class="absolute text-xs text-slate-400 text-center px-4">
+                  Adicione despesas para visualizar a divisão por categoria.
+                </div>
+              </div>
+            </div>
+            
+            <div class="pt-4 border-t border-slate-100">
+              <button onclick="switchTab('relatorios')" class="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl text-center border border-slate-200 transition">
+                Ver Relatório Detalhado
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ================= TAB: RECEITAS ================= -->
+      <section id="tab-receitas" class="tab-content hidden space-y-6">
+        <!-- Header Banner with summary -->
+        <div class="bg-gradient-to-r from-emerald-600 to-teal-700 rounded-2xl p-6 text-white shadow-lg shadow-emerald-700/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <p class="text-emerald-100 text-xs font-semibold uppercase tracking-wider">Total de Entradas em <span class="income-banner-month">Novembro 2026</span></p>
+            <h3 id="receitas-header-total" class="text-3xl font-black mt-1">R$ 0,00</h3>
+            <p class="text-xs text-emerald-200 mt-1">Cadastre seus salários, comissões, extras e rendimentos da casa.</p>
+          </div>
+          <button onclick="openModal('income')" class="px-4 py-2.5 bg-white text-emerald-700 hover:bg-emerald-50 font-bold text-xs rounded-xl shadow transition flex items-center gap-2">
+            <i data-lucide="plus" class="w-4 h-4"></i> Cadastrar Nova Entrada
+          </button>
+        </div>
+
+        <!-- Incomes Table -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+            <h4 class="font-bold text-slate-800 text-sm">Entradas Registradas</h4>
+            <span id="receitas-count-label" class="text-xs text-slate-500">0 entradas</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-50 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200/60">
+                <tr>
+                  <th class="py-3 px-4">Descrição</th>
+                  <th class="py-3 px-4">Categoria</th>
+                  <th class="py-3 px-4">Data do Recebimento</th>
+                  <th class="py-3 px-4 text-right">Valor</th>
+                  <th class="py-3 px-4 text-center">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="incomes-table-body" class="divide-y divide-slate-100">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB: DESPESAS FIXAS ================= -->
+      <section id="tab-despesas" class="tab-content hidden space-y-6">
+        <!-- Header Banner with summary -->
+        <div class="bg-gradient-to-r from-rose-600 to-pink-700 rounded-2xl p-6 text-white shadow-lg shadow-rose-700/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <p class="text-rose-100 text-xs font-semibold uppercase tracking-wider">Total de Despesas Fixas em <span class="expense-banner-month">Novembro 2026</span></p>
+            <h3 id="despesas-header-total" class="text-3xl font-black mt-1">R$ 0,00</h3>
+            <p class="text-xs text-rose-200 mt-1">Contas essenciais, aluguel, condomínio, internet, energia, parcelas, etc.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="openModal('expense')" class="px-4 py-2.5 bg-white text-rose-700 hover:bg-rose-50 font-bold text-xs rounded-xl shadow transition flex items-center gap-2">
+              <i data-lucide="plus" class="w-4 h-4"></i> Cadastrar Nova Despesa
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter bar -->
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-xs font-semibold text-slate-500">Filtrar por Status:</span>
+            <button data-status="all" onclick="filterExpenses('all')" class="filter-btn active px-3 py-1 text-xs rounded-lg font-medium bg-terracotta-800 text-white transition">Todas</button>
+            <button data-status="pending" onclick="filterExpenses('pending')" class="filter-btn px-3 py-1 text-xs rounded-lg font-medium bg-[#F3EFEA] text-slate-700 hover:bg-[#EAE4DA] transition">Pendentes</button>
+            <button data-status="paid" onclick="filterExpenses('paid')" class="filter-btn px-3 py-1 text-xs rounded-lg font-medium bg-[#F3EFEA] text-slate-700 hover:bg-[#EAE4DA] transition">Pagas</button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button id="btn-copy-prev-month" title="Copia as despesas do mês anterior para este mês" class="text-xs font-medium text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200 flex items-center gap-1.5 transition">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar do Mês Anterior
+            </button>
+          </div>
+        </div>
+
+        <!-- Expenses Table -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-50 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200/60">
+                <tr>
+                  <th class="py-3 px-4 w-12 text-center">Pago?</th>
+                  <th class="py-3 px-4">Despesa</th>
+                  <th class="py-3 px-4">Categoria</th>
+                  <th class="py-3 px-4">Vencimento</th>
+                  <th class="py-3 px-4 text-right">Valor</th>
+                  <th class="py-3 px-4 text-center">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="expenses-table-body" class="divide-y divide-slate-100">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB: DICAS & ECONOMIA INTELIGENTE ================= -->
+      <section id="tab-economia" class="tab-content hidden space-y-6">
+        
+        <!-- Smart Intro Banner -->
+        <div class="bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl p-6 text-white shadow-lg shadow-amber-600/10">
+          <div class="flex items-center gap-3 mb-2">
+            <div class="p-2 bg-white/20 rounded-xl">
+              <i data-lucide="sparkles" class="w-6 h-6 text-white"></i>
+            </div>
+            <div>
+              <h3 class="text-xl font-bold">Assistente Inteligente de Economia</h3>
+              <p class="text-amber-100 text-xs">Análises automáticas calculadas sob medida com base nas suas despesas e receitas cadastradas.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Health Meter & 50/30/20 Rule Analysis -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          <!-- 50/30/20 Rule Card -->
+          <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div class="flex items-center gap-2">
+                <i data-lucide="compass" class="w-5 h-5 text-indigo-600"></i>
+                <h4 class="font-bold text-slate-800 text-sm">Diagnóstico: Regra de Ouro 50 / 30 / 20</h4>
+              </div>
+              <span id="badge-rule-verdict" class="text-xs px-2.5 py-1 rounded-full font-bold bg-slate-100 text-slate-700">Calculando...</span>
+            </div>
+
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Pelo modelo de finanças equilibradas, as <strong>despesas fixas e essenciais</strong> devem consumir no máximo <strong>50%</strong> da sua renda líquida. Os outros 30% são para estilo de vida e 20% para poupança e investimentos.
+            </p>
+
+            <!-- Dynamic Gauge Bars -->
+            <div class="space-y-3">
+              <div>
+                <div class="flex justify-between text-xs font-semibold mb-1">
+                  <span>Suas Despesas Fixas Atuais:</span>
+                  <span id="rule-actual-percent" class="font-bold text-slate-800">0%</span>
+                </div>
+                <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
+                  <div id="rule-actual-bar" class="h-full bg-blue-600 rounded-full transition-all duration-700" style="width: 0%"></div>
+                </div>
+                <div class="flex justify-between text-[11px] text-slate-400 mt-1">
+                  <span>0%</span>
+                  <span class="text-emerald-600 font-semibold">Teto Ideal: 50%</span>
+                  <span class="text-amber-600 font-semibold">Alerta: 60%</span>
+                  <span class="text-rose-600 font-semibold">Crítico: 70%+</span>
+                </div>
+              </div>
+            </div>
+
+            <div id="rule-advice-box" class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 space-y-1">
+              <!-- Personalized insight -->
+            </div>
+          </div>
+
+          <!-- Emergency Fund Calculator Card -->
+          <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 border-b border-slate-100 pb-3 mb-4">
+                <i data-lucide="shield-check" class="w-5 h-5 text-emerald-600"></i>
+                <h4 class="font-bold text-slate-800 text-sm">Reserva de Emergência</h4>
+              </div>
+              <p class="text-xs text-slate-600 mb-4">
+                Para ter tranquilidade, sua família deve ter guardado de <strong>3 a 6 meses</strong> do custo de vida fixo mensal:
+              </p>
+
+              <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200/70">
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-500">Custo Fixo Mensal:</span>
+                  <strong id="emergency-fixed-cost" class="text-slate-800">R$ 0,00</strong>
+                </div>
+                <div class="flex justify-between text-xs border-t border-slate-200/60 pt-2">
+                  <span class="text-slate-600">Meta Segura (3 Meses):</span>
+                  <strong id="emergency-3-months" class="text-emerald-600 font-bold">R$ 0,00</strong>
+                </div>
+                <div class="flex justify-between text-xs border-t border-slate-200/60 pt-2">
+                  <span class="text-slate-600">Meta Ideal (6 Meses):</span>
+                  <strong id="emergency-6-months" class="text-blue-600 font-bold">R$ 0,00</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-4 pt-3 text-[11px] text-slate-400 border-t border-slate-100 flex items-center gap-1.5">
+              <i data-lucide="info" class="w-4 h-4 text-slate-400"></i>
+              <span>Mantenha esse montante em liquidez diária (CDB 100% CDI ou Tesouro Selic).</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Actionable Tailored Recommendations Cards -->
+        <div>
+          <h4 class="font-bold text-slate-800 text-base mb-3 flex items-center gap-2">
+            <i data-lucide="target" class="w-5 h-5 text-amber-500"></i>
+            Oportunidades Práticas de Redução de Gastos
+          </h4>
+          <div id="recommendations-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Dynamically populated based on real user figures -->
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================= TAB: SIMULADOR DE METAS ================= -->
+      <section id="tab-simulador" class="tab-content hidden space-y-6">
+        <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-6">
+          <div>
+            <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+              <i data-lucide="calculator" class="w-6 h-6 text-sky-500"></i>
+              Simulador de Impacto de Pequenas Economias
+            </h3>
+            <p class="text-xs text-slate-500 mt-1">Veja quanto dinheiro a mais sua família acumula cortando ou renegociando despesas hoje.</p>
+          </div>
+
+          <!-- Controls -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-slate-50 p-5 rounded-2xl border border-slate-200">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Quanto você pretende economizar por mês?</label>
+              <div class="relative">
+                <span class="absolute left-3 top-2.5 text-xs text-slate-400 font-bold">R$</span>
+                <input type="text" inputmode="decimal" id="sim-monthly-save" value="250,00" placeholder="Ex: 250,00 ou 250" class="w-full pl-9 pr-3 py-2 bg-white rounded-xl border border-slate-300 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500">
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Exemplo: renegociar internet e cortar 2 assinaturas.</p>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Taxa de Rendimento Estimada ao Ano (%):</label>
+              <div class="relative">
+                <input type="text" inputmode="decimal" id="sim-interest-rate" value="10,5" placeholder="Ex: 10,5" class="w-full pl-3 pr-8 py-2 bg-white rounded-xl border border-slate-300 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500">
+                <span class="absolute right-3 top-2.5 text-xs text-slate-400 font-bold">%</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Média de renda fixa / CDI seguro.</p>
+            </div>
+
+            <div class="flex items-end">
+              <button onclick="calculateSimulation()" class="w-full py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs rounded-xl shadow-sm transition">
+                Recalcular Projeção
+              </button>
+            </div>
+          </div>
+
+          <!-- Projected Results Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-sky-50 border border-sky-200 p-5 rounded-2xl text-center">
+              <span class="text-xs font-semibold text-sky-800 uppercase tracking-wider">Em 1 Ano</span>
+              <p id="sim-res-1y" class="text-2xl font-black text-sky-900 mt-1">R$ 0,00</p>
+              <p id="sim-profit-1y" class="text-xs text-sky-700 mt-1">+R$ 0 de rendimentos</p>
+            </div>
+
+            <div class="bg-indigo-50 border border-indigo-200 p-5 rounded-2xl text-center">
+              <span class="text-xs font-semibold text-indigo-800 uppercase tracking-wider">Em 3 Anos</span>
+              <p id="sim-res-3y" class="text-2xl font-black text-indigo-900 mt-1">R$ 0,00</p>
+              <p id="sim-profit-3y" class="text-xs text-indigo-700 mt-1">+R$ 0 de rendimentos</p>
+            </div>
+
+            <div class="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl text-center">
+              <span class="text-xs font-semibold text-emerald-800 uppercase tracking-wider">Em 5 Anos</span>
+              <p id="sim-res-5y" class="text-2xl font-black text-emerald-900 mt-1">R$ 0,00</p>
+              <p id="sim-profit-5y" class="text-xs text-emerald-700 mt-1">+R$ 0 de rendimentos</p>
+            </div>
+          </div>
+
+          <!-- Simulation visual graph -->
+          <div class="bg-white p-4 rounded-2xl border border-slate-200/80">
+            <h4 class="text-xs font-bold text-slate-700 mb-3">Evolução do Patrimônio Acumulado (Juros Compostos)</h4>
+            <div class="h-64">
+              <canvas id="simulationChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB: RELATÓRIOS & GRÁFICOS ================= -->
+      <section id="tab-relatorios" class="tab-content hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          <!-- Big Category Chart -->
+          <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+            <h4 class="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2">
+              <i data-lucide="pie-chart" class="w-4 h-4 text-blue-600"></i>
+              Despesas por Categoria (Mês Atual)
+            </h4>
+            <div class="h-64 relative flex items-center justify-center">
+              <canvas id="categoryDetailChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Income vs Expense Bar Chart -->
+          <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+            <h4 class="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2">
+              <i data-lucide="bar-chart-3" class="w-4 h-4 text-indigo-600"></i>
+              Comparativo: Renda vs. Despesas vs. Saldo
+            </h4>
+            <div class="h-64 relative flex items-center justify-center">
+              <canvas id="balanceBarChart"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Monthly Financial Report Statement -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div>
+              <h4 class="font-bold text-slate-800 text-base">Demonstrativo Financeiro do Mês</h4>
+              <p class="text-xs text-slate-500">Extrato consolidado para conferência familiar</p>
+            </div>
+            <button onclick="window.print()" class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg border border-slate-200 flex items-center gap-1.5 transition">
+              <i data-lucide="printer" class="w-4 h-4"></i> Imprimir Relatório
+            </button>
+          </div>
+
+          <div id="monthly-statement-content" class="space-y-4 text-sm">
+            <!-- Dynamically populated summary table -->
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ================= MODAL: ADD / EDIT EXPENSE ================= -->
+  <div id="modal-expense" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden transform transition-all animate-scaleUp">
+      <div class="p-5 bg-terracotta-800 text-white flex items-center justify-between border-b border-terracotta-900">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center">
+            <i data-lucide="receipt" class="w-4 h-4"></i>
+          </div>
+          <h3 id="modal-expense-title" class="font-bold text-sm">Cadastrar Despesa Fixa</h3>
+        </div>
+        <button onclick="closeModal('expense')" class="text-slate-400 hover:text-white transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="form-expense" class="p-6 space-y-4">
+        <input type="hidden" id="expense-id">
+        
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Nome / Descrição da Conta *</label>
+          <input type="text" id="expense-desc" required placeholder="Ex: Aluguel, Conta de Luz, Internet Fibra..." class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Valor (R$) *</label>
+            <input type="text" inputmode="decimal" id="expense-val" required placeholder="Ex: 1.250,50 ou 1250,50" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-rose-500">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Dia de Vencimento *</label>
+            <input type="number" id="expense-day" min="1" max="31" required placeholder="Dia (Ex: 10)" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Categoria *</label>
+          <select id="expense-category" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500">
+            <option value="Moradia">🏠 Moradia (Aluguel, Condomínio, IPTU)</option>
+            <option value="Serviços Essenciais">💡 Contas de Consumo (Luz, Água, Gás)</option>
+            <option value="Internet & Telefone">📱 Internet, Celular e TV</option>
+            <option value="Alimentação">🛒 Supermercado e Feira</option>
+            <option value="Transporte">🚗 Transporte, Combustível, Financiamento</option>
+            <option value="Saúde & Seguros">🏥 Plano de Saúde, Farmácia, Seguro</option>
+            <option value="Educação">📚 Escola, Faculdade, Cursos</option>
+            <option value="Assinaturas & Lazer">🎬 Streaming, Academia, Clubes</option>
+            <option value="Dívidas & Empréstimos">💳 Cartão de Crédito, Empréstimos</option>
+            <option value="Outros">📦 Outros Gastos Fixos</option>
+          </select>
+        </div>
+
+        <div class="flex items-center gap-2 pt-1">
+          <input type="checkbox" id="expense-paid" class="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500">
+          <label for="expense-paid" class="text-xs font-medium text-slate-700 cursor-pointer">Já foi paga neste mês?</label>
+        </div>
+
+        <div class="pt-3 flex gap-2">
+          <button type="button" onclick="closeModal('expense')" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">
+            Cancelar
+          </button>
+          <button type="submit" class="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-md shadow-rose-600/20 transition">
+            Salvar Despesa
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: ADD / EDIT INCOME ================= -->
+  <div id="modal-income" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden transform transition-all animate-scaleUp">
+      <div class="p-5 bg-terracotta-800 text-white flex items-center justify-between border-b border-terracotta-900">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+            <i data-lucide="trending-up" class="w-4 h-4"></i>
+          </div>
+          <h3 id="modal-income-title" class="font-bold text-sm">Cadastrar Receita / Renda</h3>
+        </div>
+        <button onclick="closeModal('income')" class="text-slate-400 hover:text-white transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="form-income" class="p-6 space-y-4">
+        <input type="hidden" id="income-id">
+        
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Descrição da Entrada *</label>
+          <input type="text" id="income-desc" required placeholder="Ex: Salário Mensal, Renda Extra, Aluguel Recebido..." class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Valor Recebido (R$) *</label>
+            <input type="text" inputmode="decimal" id="income-val" required placeholder="Ex: 5.200,00 ou 5200,00" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Data / Dia *</label>
+            <input type="number" id="income-day" min="1" max="31" required placeholder="Dia (Ex: 05)" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Categoria de Renda</label>
+          <select id="income-category" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <option value="Salário">💼 Salário Principal</option>
+            <option value="Adiantamento">💵 Vale / Adiantamento</option>
+            <option value="Freelance / Extra">⚡ Freelance / Renda Extra</option>
+            <option value="Benefícios">💳 Vale Alimentação / Refeição</option>
+            <option value="Investimentos / Aluguel">📈 Rendimentos de Investimentos / Aluguel</option>
+            <option value="Outros">✨ Outras Receitas</option>
+          </select>
+        </div>
+
+        <div class="pt-3 flex gap-2">
+          <button type="button" onclick="closeModal('income')" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">
+            Cancelar
+          </button>
+          <button type="submit" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 transition">
+            Salvar Receita
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: FIREBASE CONFIGURATION ================= -->
+  <div id="modal-firebase" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden transform transition-all animate-scaleUp">
+      <div class="p-5 bg-terracotta-800 text-white flex items-center justify-between border-b border-terracotta-900">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-white/20 text-white flex items-center justify-center">
+            <i data-lucide="cloud" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm">Banco de Dados Firebase (Nuvem)</h3>
+            <p class="text-[11px] text-terracotta-200">Sincronize seus dados em tempo real em qualquer dispositivo</p>
+          </div>
+        </div>
+        <button onclick="closeModal('firebase')" class="text-stone-300 hover:text-white transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+        <!-- Status Banner -->
+        <div id="firebase-modal-status" class="p-3.5 rounded-xl border text-xs flex items-center justify-between bg-stone-50 border-stone-200 text-stone-700">
+          <div class="flex items-center gap-2">
+            <span id="modal-status-dot" class="w-2.5 h-2.5 rounded-full bg-stone-400"></span>
+            <span id="modal-status-text" class="font-semibold">Nenhum banco de dados conectado</span>
+          </div>
+          <button id="btn-disconnect-firebase" onclick="disconnectFirebase()" class="hidden text-[11px] text-rose-600 hover:underline font-bold">
+            Desconectar
+          </button>
+        </div>
+
+        <!-- Quick Help Instructions -->
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-900 space-y-1.5">
+          <p class="font-bold flex items-center gap-1.5">
+            <i data-lucide="info" class="w-3.5 h-3.5 text-amber-700"></i>
+            Como obter suas credenciais no Firebase:
+          </p>
+          <ol class="list-decimal list-inside space-y-1 text-[11px] text-amber-800">
+            <li>Acesse o <a href="https://console.firebase.google.com/" target="_blank" class="underline font-bold">Console do Firebase</a> e crie um projeto.</li>
+            <li>No menu esquerdo, clique em <strong>Cloud Firestore</strong> &rarr; <em>Criar banco de dados</em>.</li>
+            <li>Vá em <strong>Configurações do Projeto</strong> (engrenagem) &rarr; aba <em>Geral</em>.</li>
+            <li>Na seção <em>Seus Aplicativos</em>, adicione um aplicativo <strong>Web (&lt;/&gt;)</strong>.</li>
+            <li>Copie o objeto <code>firebaseConfig</code> e cole no campo abaixo!</li>
+          </ol>
+        </div>
+
+        <form id="form-firebase" class="space-y-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">
+              Cole aqui o código do <code>firebaseConfig</code> ou JSON completo:
+            </label>
+            <textarea id="firebase-raw-json" rows="4" placeholder='const firebaseConfig = {
+  apiKey: "AIzaSy...",
+  authDomain: "seu-projeto.firebaseapp.com",
+  projectId: "seu-projeto",
+  storageBucket: "...",
+  messagingSenderId: "...",
+  appId: "..."
+};' class="w-full font-mono text-xs p-3 bg-stone-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-terracotta-700"></textarea>
+          </div>
+
+          <div class="text-center text-xs text-slate-400 font-semibold">— OU PREENCHA OS CAMPOS ABAIXO —</div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-0.5">API Key *</label>
+              <input type="text" id="fb-apiKey" placeholder="AIzaSy..." class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-terracotta-700 font-mono text-xs">
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-700 mb-0.5">Project ID *</label>
+              <input type="text" id="fb-projectId" placeholder="meu-app-123" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-terracotta-700 font-mono text-xs">
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-700 mb-0.5">Auth Domain</label>
+              <input type="text" id="fb-authDomain" placeholder="meu-app.firebaseapp.com" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-terracotta-700 font-mono text-xs">
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-700 mb-0.5">Storage Bucket</label>
+              <input type="text" id="fb-storageBucket" placeholder="meu-app.appspot.com" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-terracotta-700 font-mono text-xs">
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-700 mb-0.5">Messaging Sender ID</label>
+              <input type="text" id="fb-messagingSenderId" placeholder="123456789" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-terracotta-700 font-mono text-xs">
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-700 mb-0.5">App ID</label>
+              <input type="text" id="fb-appId" placeholder="1:123456:web:abcd" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-terracotta-700 font-mono text-xs">
+            </div>
+          </div>
+
+          <div class="pt-3 flex gap-2">
+            <button type="button" onclick="closeModal('firebase')" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">
+              Cancelar
+            </button>
+            <button type="submit" class="flex-1 py-2.5 bg-terracotta-800 hover:bg-terracotta-900 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-1.5">
+              <i data-lucide="save" class="w-4 h-4"></i> Salvar e Conectar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-xs font-medium px-4 py-3 rounded-xl shadow-xl border border-slate-700 flex items-center gap-2 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+    <span id="toast-msg">Ação realizada com sucesso!</span>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/firebase-config.js"></script>
+  <script src="js/firebase-service.js"></script>
+  <script src="js/analytics.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

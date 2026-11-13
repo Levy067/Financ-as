@@ -1,0 +1,103 @@
+/* Custom Styles - Tema Terracota & Off-White */
+
+:root {
+  --color-terracotta-base: #873624;
+  --color-terracotta-dark: #702d1e;
+  --color-terracotta-light: #c54f32;
+  --color-terracotta-active: #a33d25;
+  --color-offwhite-bg: #FAF8F5;
+  --color-offwhite-card: #FFFFFF;
+  --color-offwhite-border: #EAE4DA;
+}
+
+body {
+  background-color: var(--color-offwhite-bg);
+}
+
+@keyframes scaleUp {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scaleUp {
+  animation: scaleUp 0.18s ease-out forwards;
+}
+
+/* Nav Item active styling (Terracota Theme) */
+.nav-item {
+  color: #f3efe9;
+  transition: all 0.2s ease;
+}
+
+.nav-item.active {
+  background-color: #a33d25 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(112, 45, 30, 0.4) !important;
+}
+
+.nav-item:hover:not(.active) {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+}
+
+/* Table scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d8cec0;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #beaf9b;
+}
+
+/* Tab animations */
+.tab-content {
+  animation: fadeIn 0.25s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Print styling */
+@media print {
+  aside,
+  header,
+  button,
+  .no-print {
+    display: none !important;
+  }
+  
+  body, main {
+    background: white !important;
+    color: black !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .tab-content {
+    display: block !important;
+  }
+}
