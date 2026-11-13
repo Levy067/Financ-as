@@ -10,9 +10,13 @@ const FirebaseService = {
   status: 'disconnected', // 'connected' | 'connecting' | 'disconnected' | 'error'
 
   /**
-   * Obtém a configuração ativa (prioriza o que foi salvo pelo modal ou arquivo)
+   * Obtém a configuração ativa (prioriza o arquivo de configuração oficial)
    */
   getConfig() {
+    if (window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.projectId && window.FIREBASE_CONFIG.apiKey) {
+      return window.FIREBASE_CONFIG;
+    }
+
     const saved = localStorage.getItem('Firebase_User_Config');
     if (saved) {
       try {
@@ -21,10 +25,6 @@ const FirebaseService = {
       } catch (e) {
         console.error('Erro ao ler configuração salva do Firebase:', e);
       }
-    }
-
-    if (window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.projectId && window.FIREBASE_CONFIG.apiKey) {
-      return window.FIREBASE_CONFIG;
     }
 
     return null;

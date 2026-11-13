@@ -1,19 +1,14 @@
 /**
  * Configuração de Conexão com o Firebase
- * 
- * Para conectar seu banco de dados:
- * 1. Acesse o Firebase Console: https://console.firebase.google.com/
- * 2. Crie ou selecione seu projeto.
- * 3. Vá em "Configurações do Projeto" (ícone de engrenagem) -> "Geral".
- * 4. Na seção "Seus aplicativos", selecione Web (ícone </>) e copie o objeto firebaseConfig.
- * 5. Cole os valores correspondentes abaixo ou insira diretamente pelo botão "Nuvem / Firebase" na barra superior do aplicativo.
+ * Projeto: Projetos Levi
  */
 
 window.FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+  apiKey: "AIzaSyAOWo7bJxo9LfgzHKTDieuCI5Diwh00aP8",
+  authDomain: "projetos-levi.firebaseapp.com",
+  projectId: "projetos-levi",
+  storageBucket: "projetos-levi.firebasestorage.app",
+  messagingSenderId: "903999551709",
+  appId: "1:903999551709:web:92d57956328b3a4bda4334",
+  measurementId: "G-ESE4N2JHCQ"
 };
