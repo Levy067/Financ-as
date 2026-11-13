@@ -15,6 +15,9 @@ const APP_STATE = {
   charts: {}
 };
 
+// Exportar explicitamente para o objeto window
+window.APP_STATE = APP_STATE;
+
 // Formatação Monetária BRL
 const formatCurrency = (val) => {
   return new Intl.NumberFormat('pt-BR', {
@@ -82,21 +85,26 @@ const getMonthKey = (date) => {
   return `${y}-${m}`;
 };
 
-// Armazenamento Local
+// Armazenamento e Sincronização Local e Nuvem
 const STORAGE_KEY = 'FinancaLar_Data_v1';
 
-const saveToLocalStorage = () => {
+const saveAndSyncData = async () => {
   const data = {
     incomes: APP_STATE.incomes,
     expenses: APP_STATE.expenses
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 
-  // Sincronizar com a nuvem (Firebase) se estiver ativo
-  if (window.FirebaseService && FirebaseService.isInitialized) {
-    FirebaseService.syncToCloud(APP_STATE.incomes, APP_STATE.expenses);
+  // Sincronizar com a nuvem (Firebase Firestore em tempo real)
+  const service = window.FirebaseService || (typeof FirebaseService !== 'undefined' ? FirebaseService : null);
+  if (service && service.isInitialized && service.db) {
+    const success = await service.syncToCloud(APP_STATE.incomes, APP_STATE.expenses);
+    if (success) {
+      console.log('✓ Dados sincronizados com a nuvem Firestore com sucesso!');
+    }
   }
 };
+const saveToLocalStorage = saveAndSyncData;
 
 const loadFromLocalStorage = () => {
   const raw = localStorage.getItem(STORAGE_KEY);
@@ -113,7 +121,7 @@ const loadFromLocalStorage = () => {
   return false;
 };
 
-// Dados de Exemplo Inicial (para demonstrar a ferramenta pronta ao abrir)
+// Dados de Exemplo Inicial (somente se não houver dados salvos locais)
 const seedDefaultData = () => {
   const monthKey = getMonthKey(APP_STATE.currentDate);
   APP_STATE.incomes = [
@@ -134,7 +142,11 @@ const seedDefaultData = () => {
     { id: 'exp_9', desc: 'Netflix & Spotify', amount: 79.80, day: 14, category: 'Assinaturas & Lazer', paid: true, monthKey }
   ];
 
-  saveToLocalStorage();
+  // Apenas salva no armazenamento local, NÃO sobrescreve a nuvem
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    incomes: APP_STATE.incomes,
+    expenses: APP_STATE.expenses
+  }));
 };
 
 // Obter dados do mês ativo
@@ -161,9 +173,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   calculateSimulation();
 
   // Inicializar Firebase Auth e Firestore
-  if (window.FirebaseService) {
-    await FirebaseService.init();
-    FirebaseService.initAuth((user) => {
+  const service = window.FirebaseService || (typeof FirebaseService !== 'undefined' ? FirebaseService : null);
+  if (service) {
+    await service.init();
+    service.initAuth((user) => {
       handleAuthStateChanged(user);
     });
   }

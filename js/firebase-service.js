@@ -352,7 +352,10 @@ const FirebaseService = {
         }
       } else {
         // Documento ainda não existe na nuvem: envia dados locais para inicializar
-        this.syncToCloud(APP_STATE.incomes, APP_STATE.expenses);
+        const appState = window.APP_STATE || (typeof APP_STATE !== 'undefined' ? APP_STATE : null);
+        if (appState && (appState.incomes.length > 0 || appState.expenses.length > 0)) {
+          this.syncToCloud(appState.incomes, appState.expenses);
+        }
       }
     }, (error) => {
       console.warn('Aviso no listener do Firestore:', error);
@@ -367,19 +370,29 @@ const FirebaseService = {
    */
   async syncToCloud(incomes, expenses) {
     if (!this.isInitialized || !this.db) {
+      console.warn('syncToCloud ignorado: Firebase não inicializado.');
       return false;
     }
 
     try {
+      this.updateUIStatus('Salvando...');
+
+      // Sanitizar dados para garantir objetos JSON puros sem undefined
+      const cleanIncomes = JSON.parse(JSON.stringify(incomes || []));
+      const cleanExpenses = JSON.parse(JSON.stringify(expenses || []));
+
       const docRef = this.db.collection('financas_app').doc('principal');
       await docRef.set({
-        incomes: incomes,
-        expenses: expenses,
+        incomes: cleanIncomes,
+        expenses: cleanExpenses,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
+
+      this.updateUIStatus('Nuvem Sincronizada');
       return true;
     } catch (error) {
       console.error('Erro ao enviar dados para a nuvem:', error);
+      this.updateUIStatus('Erro ao salvar');
       return false;
     }
   },
@@ -426,3 +439,6 @@ const FirebaseService = {
     if (labelMob) labelMob.textContent = labelMobText;
   }
 };
+
+// Exportar explicitamente para o objeto window global
+window.FirebaseService = FirebaseService;
