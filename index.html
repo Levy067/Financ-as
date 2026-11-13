@@ -72,8 +72,8 @@
 </head>
 <body class="bg-[#FAF8F5] text-slate-800 antialiased font-sans min-h-screen flex flex-col md:flex-row">
 
-  <!-- ================= SIDEBAR (TERRACOTA) ================= -->
-  <aside id="sidebar" class="w-full md:w-64 bg-terracotta-800 text-stone-100 flex-shrink-0 flex flex-col justify-between border-r border-terracotta-900 z-30 transition-all duration-300 shadow-xl shadow-terracotta-950/20">
+  <!-- ================= SIDEBAR (TERRACOTA - DESKTOP) ================= -->
+  <aside id="sidebar" class="hidden md:flex md:w-64 bg-terracotta-800 text-stone-100 flex-shrink-0 flex-col justify-between border-r border-terracotta-900 z-30 transition-all duration-300 shadow-xl shadow-terracotta-950/20">
     <div>
       <!-- Brand Logo & Header -->
       <div class="p-5 flex items-center justify-between border-b border-terracotta-700/60">
@@ -86,13 +86,10 @@
             <span class="text-xs text-terracotta-200">Gestão</span>
           </div>
         </div>
-        <button id="mobile-menu-btn" class="md:hidden p-1.5 rounded-lg text-terracotta-200 hover:text-white hover:bg-terracotta-700">
-          <i data-lucide="menu" class="w-5 h-5"></i>
-        </button>
       </div>
 
       <!-- Navigation Menu -->
-      <nav id="nav-menu" class="p-4 space-y-1.5 hidden md:block">
+      <nav id="nav-menu" class="p-4 space-y-1.5">
         <button data-tab="dashboard" class="nav-item active w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors">
           <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
           <span>Visão Geral</span>
@@ -139,7 +136,7 @@
     </div>
 
     <!-- Sidebar Footer / Quick Info -->
-    <div class="p-4 border-t border-terracotta-700/60 hidden md:block">
+    <div class="p-4 border-t border-terracotta-700/60">
       <div class="p-3 bg-terracotta-900/70 rounded-xl border border-terracotta-700/50 mb-3 shadow-inner">
         <p class="text-xs text-terracotta-200 font-medium">Balanço do Mês Atual</p>
         <p id="sidebar-balance-preview" class="text-lg font-bold text-emerald-300 mt-0.5">R$ 0,00</p>
@@ -161,11 +158,72 @@
     </div>
   </aside>
 
+  <!-- ================= MOBILE TOP BAR (TERRACOTA) ================= -->
+  <div class="md:hidden bg-terracotta-800 text-stone-100 border-b border-terracotta-900 sticky top-0 z-30 shadow-md">
+    <div class="px-3.5 py-2.5 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-xl bg-white text-terracotta-800 flex items-center justify-center shadow font-bold">
+          <i data-lucide="wallet" class="w-4 h-4"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-sm text-white tracking-tight leading-none">Finanças</h1>
+          <span class="text-[10px] text-terracotta-200">Gestão Familiar</span>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-2">
+        <!-- Firebase Status Mobile -->
+        <button onclick="openModal('firebase')" class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-terracotta-900/80 text-[11px] text-terracotta-100 border border-terracotta-700/60 active:scale-95 transition">
+          <span id="firebase-status-dot-mob" class="w-2 h-2 rounded-full bg-stone-400"></span>
+          <span id="firebase-status-label-mob" class="text-[10px] font-medium">Nuvem</span>
+        </button>
+
+        <!-- User Profile Badge & Logout Mobile -->
+        <div id="user-profile-badge-mob" class="hidden flex items-center gap-1.5 pl-1.5 border-l border-terracotta-700/80">
+          <div class="w-7 h-7 rounded-lg bg-terracotta-700 text-white flex items-center justify-center font-bold text-xs" id="user-avatar-initials-mob">
+            L
+          </div>
+          <button onclick="handleLogout()" title="Sair da Conta" class="p-1 text-terracotta-300 hover:text-white rounded active:scale-95 transition">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Month & Quick Action Buttons Strip -->
+    <div class="bg-terracotta-900/70 px-3 py-2 flex items-center justify-between gap-2 border-t border-terracotta-700/50">
+      <!-- Month Navigation -->
+      <div class="flex items-center bg-terracotta-950/60 rounded-xl px-1.5 py-1 border border-terracotta-700/40 text-xs">
+        <button id="btn-prev-month-mob" class="p-1 text-terracotta-300 hover:text-white active:scale-95 transition">
+          <i data-lucide="chevron-left" class="w-4 h-4"></i>
+        </button>
+        <span id="current-month-display-mob" class="px-2 font-bold text-white text-[11px] min-w-[100px] text-center select-none">
+          Novembro 2026
+        </span>
+        <button id="btn-next-month-mob" class="p-1 text-terracotta-300 hover:text-white active:scale-95 transition">
+          <i data-lucide="chevron-right" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Quick Add Buttons Mobile -->
+      <div class="flex items-center gap-1.5">
+        <button onclick="openModal('income')" class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-sm transition">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+          <span>Receita</span>
+        </button>
+        <button onclick="openModal('expense')" class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-sm transition">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+          <span>Despesa</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ================= MAIN CONTENT AREA (OFF-WHITE) ================= -->
   <main class="flex-1 flex flex-col min-w-0 bg-[#FAF8F5] min-h-screen">
     
-    <!-- Top Header Bar -->
-    <header class="bg-white/90 backdrop-blur-md border-b border-[#EAE4DA] sticky top-0 z-20 px-6 py-4 flex flex-wrap items-center justify-between gap-4 shadow-sm">
+    <!-- Top Header Bar (Desktop Only) -->
+    <header class="hidden md:flex bg-white/90 backdrop-blur-md border-b border-[#EAE4DA] sticky top-0 z-20 px-6 py-4 items-center justify-between gap-4 shadow-sm">
       <div class="flex items-center gap-3">
         <div>
           <h2 id="page-title" class="text-xl font-bold text-slate-800 leading-tight">Visão Geral</h2>
@@ -224,69 +282,69 @@
     </header>
 
     <!-- App Dynamic Tabs Content Container -->
-    <div class="p-6 flex-1 max-w-7xl w-full mx-auto space-y-6">
+    <div class="p-3.5 sm:p-6 flex-1 max-w-7xl w-full mx-auto space-y-4 sm:space-y-6 pb-28 md:pb-6">
 
       <!-- ================= TAB: DASHBOARD ================= -->
-      <section id="tab-dashboard" class="tab-content active space-y-6">
+      <section id="tab-dashboard" class="tab-content active space-y-4 sm:space-y-6">
         
-        <!-- Summary Stat Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Summary Stat Cards (2x2 no mobile, 4 em linha no desktop) -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
           <!-- Total Income -->
-          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden group hover:border-emerald-300 transition">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Receitas Recebidas</span>
-              <div class="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-                <i data-lucide="arrow-down-left" class="w-5 h-5"></i>
+          <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden group hover:border-emerald-300 transition">
+            <div class="flex items-center justify-between mb-1.5 sm:mb-2">
+              <span class="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">Receitas</span>
+              <div class="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                <i data-lucide="arrow-down-left" class="w-4 h-4 sm:w-5 sm:h-5"></i>
               </div>
             </div>
-            <p id="dash-total-income" class="text-2xl font-black text-slate-800">R$ 0,00</p>
-            <p class="text-xs text-emerald-600 mt-2 font-medium flex items-center gap-1">
-              <span id="dash-income-count">0 entradas registradas</span>
+            <p id="dash-total-income" class="text-base sm:text-2xl font-black text-slate-800 truncate">R$ 0,00</p>
+            <p class="text-[10px] sm:text-xs text-emerald-600 mt-1 font-medium truncate">
+              <span id="dash-income-count">0 entradas</span>
             </p>
           </div>
 
           <!-- Total Fixed Expenses -->
-          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden group hover:border-rose-300 transition">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Despesas Fixas</span>
-              <div class="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600">
-                <i data-lucide="arrow-up-right" class="w-5 h-5"></i>
+          <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden group hover:border-rose-300 transition">
+            <div class="flex items-center justify-between mb-1.5 sm:mb-2">
+              <span class="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">Despesas Fixas</span>
+              <div class="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600">
+                <i data-lucide="arrow-up-right" class="w-4 h-4 sm:w-5 sm:h-5"></i>
               </div>
             </div>
-            <p id="dash-total-expenses" class="text-2xl font-black text-slate-800">R$ 0,00</p>
-            <div class="flex items-center justify-between mt-2 text-xs text-slate-500">
+            <p id="dash-total-expenses" class="text-base sm:text-2xl font-black text-slate-800 truncate">R$ 0,00</p>
+            <div class="flex items-center justify-between mt-1 text-[10px] sm:text-xs text-slate-500">
               <span id="dash-paid-summary">0 pagas</span>
               <span id="dash-pending-summary" class="text-rose-500 font-medium">0 pendentes</span>
             </div>
           </div>
 
           <!-- Available Balance -->
-          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden group hover:border-blue-300 transition">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Saldo Líquido</span>
-              <div id="dash-balance-icon-bg" class="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
-                <i data-lucide="scale" class="w-5 h-5"></i>
+          <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden group hover:border-blue-300 transition">
+            <div class="flex items-center justify-between mb-1.5 sm:mb-2">
+              <span class="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">Saldo Líquido</span>
+              <div id="dash-balance-icon-bg" class="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                <i data-lucide="scale" class="w-4 h-4 sm:w-5 sm:h-5"></i>
               </div>
             </div>
-            <p id="dash-total-balance" class="text-2xl font-black text-blue-600">R$ 0,00</p>
-            <p id="dash-balance-status" class="text-xs text-slate-500 mt-2 font-medium">
-              Calculado: Receitas - Despesas
+            <p id="dash-total-balance" class="text-base sm:text-2xl font-black text-blue-600 truncate">R$ 0,00</p>
+            <p id="dash-balance-status" class="text-[10px] sm:text-xs text-slate-500 mt-1 font-medium truncate">
+              Receitas - Despesas
             </p>
           </div>
 
           <!-- Health / Commitment Index -->
-          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden group hover:border-indigo-300 transition">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Comprometimento</span>
-              <div class="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                <i data-lucide="shield-alert" class="w-5 h-5"></i>
+          <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden group hover:border-indigo-300 transition">
+            <div class="flex items-center justify-between mb-1.5 sm:mb-2">
+              <span class="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">Comprometimento</span>
+              <div class="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                <i data-lucide="shield-alert" class="w-4 h-4 sm:w-5 sm:h-5"></i>
               </div>
             </div>
-            <div class="flex items-baseline gap-2">
-              <p id="dash-commitment-percent" class="text-2xl font-black text-slate-800">0%</p>
-              <span id="dash-health-badge" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">Neutro</span>
+            <div class="flex items-baseline gap-1.5">
+              <p id="dash-commitment-percent" class="text-base sm:text-2xl font-black text-slate-800">0%</p>
+              <span id="dash-health-badge" class="text-[9px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600">Neutro</span>
             </div>
-            <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden mt-3">
+            <div class="w-full bg-slate-100 h-1.5 sm:h-2 rounded-full overflow-hidden mt-2 sm:mt-3">
               <div id="dash-progress-bar" class="bg-blue-600 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
             </div>
           </div>
@@ -365,27 +423,28 @@
       </section>
 
       <!-- ================= TAB: RECEITAS ================= -->
-      <section id="tab-receitas" class="tab-content hidden space-y-6">
+      <section id="tab-receitas" class="tab-content hidden space-y-4 sm:space-y-6">
         <!-- Header Banner with summary -->
-        <div class="bg-gradient-to-r from-emerald-600 to-teal-700 rounded-2xl p-6 text-white shadow-lg shadow-emerald-700/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div class="bg-gradient-to-r from-emerald-600 to-teal-700 rounded-2xl p-4 sm:p-6 text-white shadow-lg shadow-emerald-700/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <p class="text-emerald-100 text-xs font-semibold uppercase tracking-wider">Total de Entradas em <span class="income-banner-month">Novembro 2026</span></p>
-            <h3 id="receitas-header-total" class="text-3xl font-black mt-1">R$ 0,00</h3>
+            <h3 id="receitas-header-total" class="text-2xl sm:text-3xl font-black mt-1">R$ 0,00</h3>
             <p class="text-xs text-emerald-200 mt-1">Cadastre seus salários, comissões, extras e rendimentos da casa.</p>
           </div>
-          <button onclick="openModal('income')" class="px-4 py-2.5 bg-white text-emerald-700 hover:bg-emerald-50 font-bold text-xs rounded-xl shadow transition flex items-center gap-2">
+          <button onclick="openModal('income')" class="w-full sm:w-auto px-4 py-2.5 bg-white text-emerald-700 hover:bg-emerald-50 font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-2">
             <i data-lucide="plus" class="w-4 h-4"></i> Cadastrar Nova Entrada
           </button>
         </div>
 
-        <!-- Incomes Table -->
+        <!-- Incomes List & Table -->
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
           <div class="p-4 border-b border-slate-100 flex items-center justify-between">
             <h4 class="font-bold text-slate-800 text-sm">Entradas Registradas</h4>
             <span id="receitas-count-label" class="text-xs text-slate-500">0 entradas</span>
           </div>
 
-          <div class="overflow-x-auto">
+          <!-- Desktop Table (hidden on mobile) -->
+          <div class="hidden md:block overflow-x-auto">
             <table class="w-full text-left text-sm">
               <thead class="bg-slate-50 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200/60">
                 <tr>
@@ -401,44 +460,50 @@
               </tbody>
             </table>
           </div>
+
+          <!-- Mobile Cards List (visible on mobile only) -->
+          <div id="incomes-mobile-list" class="divide-y divide-slate-100 md:hidden">
+            <!-- Dynamically populated for mobile -->
+          </div>
         </div>
       </section>
 
       <!-- ================= TAB: DESPESAS FIXAS ================= -->
-      <section id="tab-despesas" class="tab-content hidden space-y-6">
+      <section id="tab-despesas" class="tab-content hidden space-y-4 sm:space-y-6">
         <!-- Header Banner with summary -->
-        <div class="bg-gradient-to-r from-rose-600 to-pink-700 rounded-2xl p-6 text-white shadow-lg shadow-rose-700/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div class="bg-gradient-to-r from-rose-600 to-pink-700 rounded-2xl p-4 sm:p-6 text-white shadow-lg shadow-rose-700/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <p class="text-rose-100 text-xs font-semibold uppercase tracking-wider">Total de Despesas Fixas em <span class="expense-banner-month">Novembro 2026</span></p>
-            <h3 id="despesas-header-total" class="text-3xl font-black mt-1">R$ 0,00</h3>
+            <h3 id="despesas-header-total" class="text-2xl sm:text-3xl font-black mt-1">R$ 0,00</h3>
             <p class="text-xs text-rose-200 mt-1">Contas essenciais, aluguel, condomínio, internet, energia, parcelas, etc.</p>
           </div>
-          <div class="flex items-center gap-2">
-            <button onclick="openModal('expense')" class="px-4 py-2.5 bg-white text-rose-700 hover:bg-rose-50 font-bold text-xs rounded-xl shadow transition flex items-center gap-2">
+          <div class="w-full sm:w-auto flex items-center gap-2">
+            <button onclick="openModal('expense')" class="w-full sm:w-auto px-4 py-2.5 bg-white text-rose-700 hover:bg-rose-50 font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-2">
               <i data-lucide="plus" class="w-4 h-4"></i> Cadastrar Nova Despesa
             </button>
           </div>
         </div>
 
         <!-- Filter bar -->
-        <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
-          <div class="flex items-center gap-2 flex-wrap">
-            <span class="text-xs font-semibold text-slate-500">Filtrar por Status:</span>
-            <button data-status="all" onclick="filterExpenses('all')" class="filter-btn active px-3 py-1 text-xs rounded-lg font-medium bg-terracotta-800 text-white transition">Todas</button>
-            <button data-status="pending" onclick="filterExpenses('pending')" class="filter-btn px-3 py-1 text-xs rounded-lg font-medium bg-[#F3EFEA] text-slate-700 hover:bg-[#EAE4DA] transition">Pendentes</button>
-            <button data-status="paid" onclick="filterExpenses('paid')" class="filter-btn px-3 py-1 text-xs rounded-lg font-medium bg-[#F3EFEA] text-slate-700 hover:bg-[#EAE4DA] transition">Pagas</button>
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-sm">
+          <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+            <span class="text-[11px] sm:text-xs font-semibold text-slate-500 mr-1">Status:</span>
+            <button data-status="all" onclick="filterExpenses('all')" class="filter-btn active px-2.5 sm:px-3 py-1 text-xs rounded-lg font-medium bg-terracotta-800 text-white transition">Todas</button>
+            <button data-status="pending" onclick="filterExpenses('pending')" class="filter-btn px-2.5 sm:px-3 py-1 text-xs rounded-lg font-medium bg-[#F3EFEA] text-slate-700 hover:bg-[#EAE4DA] transition">Pendentes</button>
+            <button data-status="paid" onclick="filterExpenses('paid')" class="filter-btn px-2.5 sm:px-3 py-1 text-xs rounded-lg font-medium bg-[#F3EFEA] text-slate-700 hover:bg-[#EAE4DA] transition">Pagas</button>
           </div>
 
-          <div class="flex items-center gap-2">
+          <div class="w-full sm:w-auto flex items-center justify-end gap-2">
             <button id="btn-copy-prev-month" title="Copia as despesas do mês anterior para este mês" class="text-xs font-medium text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200 flex items-center gap-1.5 transition">
               <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar do Mês Anterior
             </button>
           </div>
         </div>
 
-        <!-- Expenses Table -->
+        <!-- Expenses List & Table -->
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-          <div class="overflow-x-auto">
+          <!-- Desktop Table (hidden on mobile) -->
+          <div class="hidden md:block overflow-x-auto">
             <table class="w-full text-left text-sm">
               <thead class="bg-slate-50 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200/60">
                 <tr>
@@ -454,6 +519,11 @@
                 <!-- Dynamically populated -->
               </tbody>
             </table>
+          </div>
+
+          <!-- Mobile Cards List (visible on mobile only) -->
+          <div id="expenses-mobile-list" class="divide-y divide-slate-100 md:hidden">
+            <!-- Dynamically populated for mobile -->
           </div>
         </div>
       </section>
@@ -1074,16 +1144,117 @@
     </div>
   </div>
 
+  <!-- ================= MOBILE BOTTOM NAVIGATION ================= -->
+  <nav id="mobile-bottom-bar" class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-2xl flex items-center justify-around py-1.5 px-2 safe-bottom">
+    <button data-tab="dashboard" class="mobile-nav-btn active flex-1 flex flex-col items-center justify-center py-1 text-slate-500 hover:text-terracotta-700 transition">
+      <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+      <span class="text-[10px] font-semibold mt-0.5">Início</span>
+    </button>
+
+    <button data-tab="receitas" class="mobile-nav-btn flex-1 flex flex-col items-center justify-center py-1 text-slate-500 hover:text-terracotta-700 transition relative">
+      <i data-lucide="trending-up" class="w-5 h-5"></i>
+      <span class="text-[10px] font-semibold mt-0.5">Receitas</span>
+      <span id="badge-receitas-mob" class="hidden absolute top-0.5 right-4 w-4 h-4 bg-emerald-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">0</span>
+    </button>
+
+    <button data-tab="despesas" class="mobile-nav-btn flex-1 flex flex-col items-center justify-center py-1 text-slate-500 hover:text-terracotta-700 transition relative">
+      <i data-lucide="receipt" class="w-5 h-5"></i>
+      <span class="text-[10px] font-semibold mt-0.5">Despesas</span>
+      <span id="badge-despesas-mob" class="hidden absolute top-0.5 right-4 w-4 h-4 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">0</span>
+    </button>
+
+    <button data-tab="economia" class="mobile-nav-btn flex-1 flex flex-col items-center justify-center py-1 text-slate-500 hover:text-terracotta-700 transition">
+      <i data-lucide="sparkles" class="w-5 h-5 text-amber-500"></i>
+      <span class="text-[10px] font-semibold mt-0.5">Dicas</span>
+    </button>
+
+    <button onclick="openModal('mobile-more')" class="mobile-nav-btn flex-1 flex flex-col items-center justify-center py-1 text-slate-500 hover:text-terracotta-700 transition relative">
+      <i data-lucide="more-horizontal" class="w-5 h-5"></i>
+      <span class="text-[10px] font-semibold mt-0.5">Mais</span>
+      <span id="badge-pending-mob" class="hidden absolute top-0.5 right-4 w-2 h-2 bg-amber-500 rounded-full animate-ping"></span>
+    </button>
+  </nav>
+
+  <!-- ================= MODAL: MOBILE MORE MENU ================= -->
+  <div id="modal-mobile-more" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center hidden p-0 sm:p-4">
+    <div class="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden transform transition-all animate-scaleUp p-5 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+          <i data-lucide="menu" class="w-4 h-4 text-terracotta-700"></i> Mais Recursos & Ferramentas
+        </h3>
+        <button onclick="closeModal('mobile-more')" class="text-slate-400 hover:text-slate-700 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-2">
+        <button onclick="switchTab('simulador'); closeModal('mobile-more');" class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 text-left transition border border-slate-100">
+          <div class="w-9 h-9 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
+            <i data-lucide="calculator" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <p class="font-bold text-xs text-slate-800">Simulador de Metas & Juros</p>
+            <p class="text-[11px] text-slate-500">Projeção de rendimentos para 1, 3 e 5 anos</p>
+          </div>
+        </button>
+
+        <button onclick="switchTab('relatorios'); closeModal('mobile-more');" class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 text-left transition border border-slate-100">
+          <div class="w-9 h-9 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+            <i data-lucide="pie-chart" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <p class="font-bold text-xs text-slate-800">Gráficos & Extrato do Mês</p>
+            <p class="text-[11px] text-slate-500">Divisão por categoria e extrato impresso</p>
+          </div>
+        </button>
+
+        <!-- Admin: Autorizar Membros -->
+        <button id="mobile-btn-members" onclick="openModal('members'); closeModal('mobile-more');" class="hidden w-full flex items-center gap-3 p-3 rounded-xl hover:bg-emerald-50 text-left transition border border-emerald-100 bg-emerald-50/40">
+          <div class="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+            <i data-lucide="users" class="w-5 h-5"></i>
+          </div>
+          <div class="flex-1">
+            <div class="flex items-center justify-between">
+              <p class="font-bold text-xs text-slate-800">Autorizar Novos Membros</p>
+              <span id="badge-pending-members-mob" class="text-[10px] font-bold py-0.5 px-2 bg-amber-400 text-amber-950 rounded-full animate-bounce">0 pendentes</span>
+            </div>
+            <p class="text-[11px] text-slate-500">Aprovar ou bloquear pessoas da família</p>
+          </div>
+        </button>
+
+        <button onclick="openModal('firebase'); closeModal('mobile-more');" class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 text-left transition border border-slate-100">
+          <div class="w-9 h-9 rounded-lg bg-stone-100 text-stone-700 flex items-center justify-center">
+            <i data-lucide="cloud" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <p class="font-bold text-xs text-slate-800">Sincronização Firebase Nuvem</p>
+            <p class="text-[11px] text-slate-500">Status da conexão e regras de banco</p>
+          </div>
+        </button>
+      </div>
+
+      <!-- Backup / Logout Footer in More -->
+      <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+        <button onclick="exportBackupJSON(); closeModal('mobile-more');" class="text-slate-600 hover:text-slate-900 flex items-center gap-1.5 font-medium">
+          <i data-lucide="download" class="w-4 h-4"></i> Baixar Backup
+        </button>
+        <button onclick="handleLogout()" class="text-rose-600 hover:text-rose-800 flex items-center gap-1.5 font-bold">
+          <i data-lucide="log-out" class="w-4 h-4"></i> Sair da Conta
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
-  <div id="toast" class="fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-xs font-medium px-4 py-3 rounded-xl shadow-xl border border-slate-700 flex items-center gap-2 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+  <div id="toast" class="fixed bottom-20 md:bottom-5 right-5 z-50 bg-slate-900 text-white text-xs font-medium px-4 py-3 rounded-xl shadow-xl border border-slate-700 flex items-center gap-2 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
     <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
     <span id="toast-msg">Ação realizada com sucesso!</span>
   </div>
 
   <!-- Scripts -->
-  <script src="js/firebase-config.js?v=20261113_2"></script>
-  <script src="js/firebase-service.js?v=20261113_2"></script>
-  <script src="js/analytics.js?v=20261113_2"></script>
-  <script src="js/app.js?v=20261113_2"></script>
+  <script src="js/firebase-config.js?v=20261113_3"></script>
+  <script src="js/firebase-service.js?v=20261113_3"></script>
+  <script src="js/analytics.js?v=20261113_3"></script>
+  <script src="js/app.js?v=20261113_3"></script>
 </body>
 </html>

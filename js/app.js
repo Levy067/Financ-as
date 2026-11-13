@@ -184,8 +184,8 @@ const setupEventListeners = () => {
     });
   });
 
-  // Botões de Mês Anterior / Próximo
-  document.getElementById('btn-prev-month').addEventListener('click', () => {
+  // Botões de Mês Anterior / Próximo (Desktop e Mobile)
+  const prevMonthAction = () => {
     APP_STATE.currentDate = new Date(
       APP_STATE.currentDate.getFullYear(),
       APP_STATE.currentDate.getMonth() - 1,
@@ -193,9 +193,9 @@ const setupEventListeners = () => {
     );
     updateMonthHeader();
     renderAll();
-  });
+  };
 
-  document.getElementById('btn-next-month').addEventListener('click', () => {
+  const nextMonthAction = () => {
     APP_STATE.currentDate = new Date(
       APP_STATE.currentDate.getFullYear(),
       APP_STATE.currentDate.getMonth() + 1,
@@ -203,6 +203,24 @@ const setupEventListeners = () => {
     );
     updateMonthHeader();
     renderAll();
+  };
+
+  const btnPrev = document.getElementById('btn-prev-month');
+  if (btnPrev) btnPrev.addEventListener('click', prevMonthAction);
+  const btnPrevMob = document.getElementById('btn-prev-month-mob');
+  if (btnPrevMob) btnPrevMob.addEventListener('click', prevMonthAction);
+
+  const btnNext = document.getElementById('btn-next-month');
+  if (btnNext) btnNext.addEventListener('click', nextMonthAction);
+  const btnNextMob = document.getElementById('btn-next-month-mob');
+  if (btnNextMob) btnNextMob.addEventListener('click', nextMonthAction);
+
+  // Navegação de Abas (Mobile Bottom Bar)
+  document.querySelectorAll('.mobile-nav-btn[data-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.getAttribute('data-tab');
+      switchTab(tab);
+    });
   });
 
   // Botões Rápidos do Topo
@@ -256,12 +274,21 @@ const setupEventListeners = () => {
   }
 };
 
-// Alternância de Abas Laterais
+// Alternância de Abas Laterais e Mobile
 window.switchTab = (tabName) => {
   APP_STATE.activeTab = tabName;
 
-  // Atualizar botões laterais
+  // Atualizar botões laterais (Desktop)
   document.querySelectorAll('.nav-item').forEach(btn => {
+    if (btn.getAttribute('data-tab') === tabName) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+
+  // Atualizar botões mobile da barra inferior
+  document.querySelectorAll('.mobile-nav-btn[data-tab]').forEach(btn => {
     if (btn.getAttribute('data-tab') === tabName) {
       btn.classList.add('active');
     } else {
@@ -307,10 +334,13 @@ window.switchTab = (tabName) => {
   if (window.lucide) window.lucide.createIcons();
 };
 
-// Atualiza o mês exibido
+// Atualiza o mês exibido (Desktop e Mobile)
 const updateMonthHeader = () => {
   const label = getMonthName(APP_STATE.currentDate);
-  document.getElementById('current-month-display').textContent = label;
+  const dispDesktop = document.getElementById('current-month-display');
+  if (dispDesktop) dispDesktop.textContent = label;
+  const dispMob = document.getElementById('current-month-display-mob');
+  if (dispMob) dispMob.textContent = label;
 
   document.querySelectorAll('.income-banner-month, .expense-banner-month').forEach(el => {
     el.textContent = label;
@@ -381,6 +411,21 @@ const renderAll = () => {
 
   document.getElementById('despesas-header-total').textContent = formatCurrency(totalExpenses);
 
+  // Atualizar Badges do Bottom Bar Mobile
+  const bRecMob = document.getElementById('badge-receitas-mob');
+  if (bRecMob) {
+    bRecMob.textContent = currentIncomes.length;
+    if (currentIncomes.length > 0) bRecMob.classList.remove('hidden');
+    else bRecMob.classList.add('hidden');
+  }
+
+  const bDespMob = document.getElementById('badge-despesas-mob');
+  if (bDespMob) {
+    bDespMob.textContent = currentExpenses.length;
+    if (currentExpenses.length > 0) bDespMob.classList.remove('hidden');
+    else bDespMob.classList.add('hidden');
+  }
+
   // Renderizar Tabelas
   renderIncomesTable(currentIncomes);
   renderExpensesTable(currentExpenses);
@@ -398,47 +443,93 @@ const renderAll = () => {
   if (window.lucide) window.lucide.createIcons();
 };
 
-// Renderizar Tabela de Receitas
+// Renderizar Tabela e Lista Mobile de Receitas
 const renderIncomesTable = (incomes) => {
   const tbody = document.getElementById('incomes-table-body');
+  const mobList = document.getElementById('incomes-mobile-list');
+
   if (incomes.length === 0) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="5" class="py-8 text-center text-slate-400 text-sm">
-          Nenhuma renda cadastrada para este mês. Clique em <strong>"Cadastrar Nova Entrada"</strong> acima para adicionar.
-        </td>
-      </tr>
-    `;
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5" class="py-8 text-center text-slate-400 text-sm">
+            Nenhuma renda cadastrada para este mês. Clique em <strong>"Cadastrar Nova Entrada"</strong> acima para adicionar.
+          </td>
+        </tr>
+      `;
+    }
+    if (mobList) {
+      mobList.innerHTML = `
+        <div class="p-6 text-center text-slate-400 text-xs">
+          Nenhuma renda cadastrada para este mês.<br>Toque em <strong>"+ Receita"</strong> acima para adicionar.
+        </div>
+      `;
+    }
     return;
   }
 
-  tbody.innerHTML = incomes.map(item => `
-    <tr class="hover:bg-slate-50/80 transition-colors">
-      <td class="py-3 px-4 font-semibold text-slate-800">${escapeHtml(item.desc)}</td>
-      <td class="py-3 px-4">
-        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-          ${escapeHtml(item.category || 'Outros')}
-        </span>
-      </td>
-      <td class="py-3 px-4 text-slate-500 text-xs">Dia ${String(item.day).padStart(2, '0')}</td>
-      <td class="py-3 px-4 text-right font-bold text-emerald-600">${formatCurrency(item.amount)}</td>
-      <td class="py-3 px-4 text-center">
-        <div class="flex items-center justify-center gap-1">
-          <button onclick="editIncome('${item.id}')" title="Editar" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition">
+  // Tabela Desktop
+  if (tbody) {
+    tbody.innerHTML = incomes.map(item => `
+      <tr class="hover:bg-slate-50/80 transition-colors">
+        <td class="py-3 px-4 font-semibold text-slate-800">${escapeHtml(item.desc)}</td>
+        <td class="py-3 px-4">
+          <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+            ${escapeHtml(item.category || 'Outros')}
+          </span>
+        </td>
+        <td class="py-3 px-4 text-slate-500 text-xs">Dia ${String(item.day).padStart(2, '0')}</td>
+        <td class="py-3 px-4 text-right font-bold text-emerald-600">${formatCurrency(item.amount)}</td>
+        <td class="py-3 px-4 text-center">
+          <div class="flex items-center justify-center gap-1">
+            <button onclick="editIncome('${item.id}')" title="Editar" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition">
+              <i data-lucide="edit-3" class="w-4 h-4"></i>
+            </button>
+            <button onclick="deleteIncome('${item.id}')" title="Excluir" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded-lg transition">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  // Lista de Cards Mobile
+  if (mobList) {
+    mobList.innerHTML = incomes.map(item => `
+      <div class="p-3.5 bg-white flex items-center gap-3 transition-colors">
+        <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="trending-up" class="w-4 h-4"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-baseline justify-between gap-2">
+            <h5 class="text-xs font-bold text-slate-800 truncate">${escapeHtml(item.desc)}</h5>
+            <span class="text-xs font-bold text-emerald-600 whitespace-nowrap">${formatCurrency(item.amount)}</span>
+          </div>
+          <div class="flex items-center justify-between text-[11px] text-slate-500 mt-0.5">
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700">
+              ${escapeHtml(item.category || 'Outros')}
+            </span>
+            <span>Dia ${String(item.day).padStart(2, '0')}</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-1 flex-shrink-0 border-l border-slate-100 pl-2">
+          <button onclick="editIncome('${item.id}')" title="Editar" class="p-1.5 text-slate-400 hover:text-blue-600 active:scale-95 rounded">
             <i data-lucide="edit-3" class="w-4 h-4"></i>
           </button>
-          <button onclick="deleteIncome('${item.id}')" title="Excluir" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded-lg transition">
+          <button onclick="deleteIncome('${item.id}')" title="Excluir" class="p-1.5 text-slate-400 hover:text-rose-600 active:scale-95 rounded">
             <i data-lucide="trash-2" class="w-4 h-4"></i>
           </button>
         </div>
-      </td>
-    </tr>
-  `).join('');
+      </div>
+    `).join('');
+  }
 };
 
-// Renderizar Tabela de Despesas Fixas
+// Renderizar Tabela e Lista Mobile de Despesas Fixas
 const renderExpensesTable = (expenses) => {
   const tbody = document.getElementById('expenses-table-body');
+  const mobList = document.getElementById('expenses-mobile-list');
 
   let filtered = expenses;
   if (APP_STATE.expenseFilter === 'paid') {
@@ -448,48 +539,96 @@ const renderExpensesTable = (expenses) => {
   }
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="6" class="py-8 text-center text-slate-400 text-sm">
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" class="py-8 text-center text-slate-400 text-sm">
+            Nenhuma despesa fixa encontrada com o filtro selecionado.
+          </td>
+        </tr>
+      `;
+    }
+    if (mobList) {
+      mobList.innerHTML = `
+        <div class="p-6 text-center text-slate-400 text-xs">
           Nenhuma despesa fixa encontrada com o filtro selecionado.
-        </td>
-      </tr>
-    `;
+        </div>
+      `;
+    }
     return;
   }
 
-  tbody.innerHTML = filtered.map(item => `
-    <tr class="hover:bg-slate-50/80 transition-colors ${item.paid ? 'opacity-75 bg-slate-50/40' : ''}">
-      <td class="py-3 px-4 text-center">
-        <input type="checkbox" ${item.paid ? 'checked' : ''} onchange="toggleExpensePaid('${item.id}')"
-          class="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer" title="Marcar como paga">
-      </td>
-      <td class="py-3 px-4">
-        <span class="font-semibold text-slate-800 ${item.paid ? 'line-through text-slate-500' : ''}">
-          ${escapeHtml(item.desc)}
-        </span>
-      </td>
-      <td class="py-3 px-4">
-        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-700">
-          ${escapeHtml(item.category || 'Outros')}
-        </span>
-      </td>
-      <td class="py-3 px-4 text-slate-500 text-xs">Dia ${String(item.day).padStart(2, '0')}</td>
-      <td class="py-3 px-4 text-right font-bold ${item.paid ? 'text-slate-500' : 'text-rose-600'}">
-        ${formatCurrency(item.amount)}
-      </td>
-      <td class="py-3 px-4 text-center">
-        <div class="flex items-center justify-center gap-1">
-          <button onclick="editExpense('${item.id}')" title="Editar" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition">
+  // Tabela Desktop
+  if (tbody) {
+    tbody.innerHTML = filtered.map(item => `
+      <tr class="hover:bg-slate-50/80 transition-colors ${item.paid ? 'opacity-75 bg-slate-50/40' : ''}">
+        <td class="py-3 px-4 text-center">
+          <input type="checkbox" ${item.paid ? 'checked' : ''} onchange="toggleExpensePaid('${item.id}')"
+            class="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer" title="Marcar como paga">
+        </td>
+        <td class="py-3 px-4">
+          <span class="font-semibold text-slate-800 ${item.paid ? 'line-through text-slate-500' : ''}">
+            ${escapeHtml(item.desc)}
+          </span>
+        </td>
+        <td class="py-3 px-4">
+          <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-700">
+            ${escapeHtml(item.category || 'Outros')}
+          </span>
+        </td>
+        <td class="py-3 px-4 text-slate-500 text-xs">Dia ${String(item.day).padStart(2, '0')}</td>
+        <td class="py-3 px-4 text-right font-bold ${item.paid ? 'text-slate-500' : 'text-rose-600'}">
+          ${formatCurrency(item.amount)}
+        </td>
+        <td class="py-3 px-4 text-center">
+          <div class="flex items-center justify-center gap-1">
+            <button onclick="editExpense('${item.id}')" title="Editar" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition">
+              <i data-lucide="edit-3" class="w-4 h-4"></i>
+            </button>
+            <button onclick="deleteExpense('${item.id}')" title="Excluir" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded-lg transition">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  // Lista de Cards Mobile
+  if (mobList) {
+    mobList.innerHTML = filtered.map(item => `
+      <div class="p-3.5 bg-white flex items-center gap-3 transition-colors ${item.paid ? 'opacity-70 bg-slate-50/60' : ''}">
+        <div class="flex-shrink-0">
+          <input type="checkbox" ${item.paid ? 'checked' : ''} onchange="toggleExpensePaid('${item.id}')"
+            class="w-5 h-5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer">
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-baseline justify-between gap-2">
+            <h5 class="text-xs font-bold text-slate-800 truncate ${item.paid ? 'line-through text-slate-500' : ''}">
+              ${escapeHtml(item.desc)}
+            </h5>
+            <span class="text-xs font-bold whitespace-nowrap ${item.paid ? 'text-slate-500' : 'text-rose-600'}">
+              ${formatCurrency(item.amount)}
+            </span>
+          </div>
+          <div class="flex items-center justify-between text-[11px] text-slate-500 mt-0.5">
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">
+              ${escapeHtml(item.category || 'Outros')}
+            </span>
+            <span>Vence dia ${String(item.day).padStart(2, '0')}</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-1 flex-shrink-0 border-l border-slate-100 pl-2">
+          <button onclick="editExpense('${item.id}')" title="Editar" class="p-1.5 text-slate-400 hover:text-blue-600 active:scale-95 rounded">
             <i data-lucide="edit-3" class="w-4 h-4"></i>
           </button>
-          <button onclick="deleteExpense('${item.id}')" title="Excluir" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded-lg transition">
+          <button onclick="deleteExpense('${item.id}')" title="Excluir" class="p-1.5 text-slate-400 hover:text-rose-600 active:scale-95 rounded">
             <i data-lucide="trash-2" class="w-4 h-4"></i>
           </button>
         </div>
-      </td>
-    </tr>
-  `).join('');
+      </div>
+    `).join('');
+  }
 };
 
 // Renderizar Prévia de Despesas no Dashboard
@@ -1257,10 +1396,13 @@ async function handleAuthStateChanged(user) {
   APP_STATE.currentUser = user;
   const overlay = document.getElementById('auth-overlay');
   const userBadge = document.getElementById('user-profile-badge');
+  const userBadgeMob = document.getElementById('user-profile-badge-mob');
   const userEmail = document.getElementById('user-display-email');
   const userInitials = document.getElementById('user-avatar-initials');
+  const userInitialsMob = document.getElementById('user-avatar-initials-mob');
   const pendingOverlay = document.getElementById('pending-approval-overlay');
   const navBtnMembers = document.getElementById('nav-btn-members');
+  const mobBtnMembers = document.getElementById('mobile-btn-members');
 
   if (user) {
     // Esconder imediatamente a tela de login
@@ -1269,10 +1411,9 @@ async function handleAuthStateChanged(user) {
       overlay.classList.add('hidden');
     }
     if (userEmail) userEmail.textContent = user.email || 'Usuário';
-    if (userInitials) {
-      const initial = (user.email ? user.email.charAt(0) : 'U').toUpperCase();
-      userInitials.textContent = initial;
-    }
+    const initial = (user.email ? user.email.charAt(0) : 'U').toUpperCase();
+    if (userInitials) userInitials.textContent = initial;
+    if (userInitialsMob) userInitialsMob.textContent = initial;
 
     try {
       // 1. Registrar ou checar permissão deste usuário
@@ -1290,6 +1431,7 @@ async function handleAuthStateChanged(user) {
         overlay.classList.add('hidden');
       }
       if (userBadge) userBadge.classList.remove('hidden');
+      if (userBadgeMob) userBadgeMob.classList.remove('hidden');
     }
 
   } else {
@@ -1303,7 +1445,9 @@ async function handleAuthStateChanged(user) {
       pendingOverlay.classList.add('hidden');
     }
     if (userBadge) userBadge.classList.add('hidden');
+    if (userBadgeMob) userBadgeMob.classList.add('hidden');
     if (navBtnMembers) navBtnMembers.classList.add('hidden');
+    if (mobBtnMembers) mobBtnMembers.classList.add('hidden');
   }
 
   if (window.lucide) window.lucide.createIcons();
@@ -1318,8 +1462,12 @@ function onPermissionsRealtimeUpdate(perms, user) {
   const overlay = document.getElementById('auth-overlay');
   const pendingOverlay = document.getElementById('pending-approval-overlay');
   const userBadge = document.getElementById('user-profile-badge');
+  const userBadgeMob = document.getElementById('user-profile-badge-mob');
   const navBtnMembers = document.getElementById('nav-btn-members');
+  const mobBtnMembers = document.getElementById('mobile-btn-members');
   const badgePending = document.getElementById('badge-pending-members');
+  const badgePendingMob = document.getElementById('badge-pending-members-mob');
+  const badgeDotMob = document.getElementById('badge-pending-mob');
 
   if (myPerm.status === 'approved') {
     // Usuário APROVADO: Acesso liberado ao aplicativo
@@ -1332,10 +1480,12 @@ function onPermissionsRealtimeUpdate(perms, user) {
       pendingOverlay.classList.add('hidden');
     }
     if (userBadge) userBadge.classList.remove('hidden');
+    if (userBadgeMob) userBadgeMob.classList.remove('hidden');
 
     // Se for admin, exibe botão de membros e contador de pendentes
-    if (myPerm.role === 'admin' && navBtnMembers) {
-      navBtnMembers.classList.remove('hidden');
+    if (myPerm.role === 'admin') {
+      if (navBtnMembers) navBtnMembers.classList.remove('hidden');
+      if (mobBtnMembers) mobBtnMembers.classList.remove('hidden');
 
       const pendingCount = Object.keys(perms).filter(uid => perms[uid].status === 'pending').length;
       if (badgePending) {
@@ -1346,14 +1496,23 @@ function onPermissionsRealtimeUpdate(perms, user) {
           badgePending.classList.add('hidden');
         }
       }
+      if (badgePendingMob) {
+        badgePendingMob.textContent = `${pendingCount} pendente(s)`;
+      }
+      if (badgeDotMob) {
+        if (pendingCount > 0) badgeDotMob.classList.remove('hidden');
+        else badgeDotMob.classList.add('hidden');
+      }
 
       // Se o modal de membros estiver aberto, atualiza a lista em tempo real
       const modalMembers = document.getElementById('modal-members');
       if (modalMembers && !modalMembers.classList.contains('hidden')) {
         renderMembersList(perms);
       }
-    } else if (navBtnMembers) {
-      navBtnMembers.classList.add('hidden');
+    } else {
+      if (navBtnMembers) navBtnMembers.classList.add('hidden');
+      if (mobBtnMembers) mobBtnMembers.classList.add('hidden');
+      if (badgeDotMob) badgeDotMob.classList.add('hidden');
     }
 
     // Iniciar escuta dos dados financeiros em tempo real
@@ -1379,6 +1538,7 @@ function onPermissionsRealtimeUpdate(perms, user) {
       pendingOverlay.classList.remove('hidden');
     }
     if (userBadge) userBadge.classList.add('hidden');
+    if (userBadgeMob) userBadgeMob.classList.add('hidden');
     const pendingEmailSpan = document.getElementById('pending-user-email');
     if (pendingEmailSpan) pendingEmailSpan.textContent = user.email;
 

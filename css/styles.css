@@ -51,6 +51,29 @@ body {
   color: #ffffff !important;
 }
 
+/* Mobile Bottom Navigation active styling */
+.mobile-nav-btn {
+  transition: all 0.18s ease;
+}
+
+.mobile-nav-btn.active {
+  color: #873624 !important;
+}
+
+.mobile-nav-btn.active i {
+  stroke-width: 2.5px;
+  color: #873624 !important;
+}
+
+.mobile-nav-btn.active span {
+  font-weight: 700;
+  color: #873624 !important;
+}
+
+.safe-bottom {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
 /* Table scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

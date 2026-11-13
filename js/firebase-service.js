@@ -385,32 +385,44 @@ const FirebaseService = {
   },
 
   /**
-   * Atualiza a pílula de status visual na barra superior
+   * Atualiza a pílula de status visual na barra superior (Desktop e Mobile)
    */
   updateUIStatus(customText) {
     const pill = document.getElementById('firebase-status-pill');
     const dot = document.getElementById('firebase-status-dot');
     const label = document.getElementById('firebase-status-label');
 
-    if (!pill || !dot || !label) return;
+    const dotMob = document.getElementById('firebase-status-dot-mob');
+    const labelMob = document.getElementById('firebase-status-label-mob');
+
+    let dotClass = 'w-2 h-2 rounded-full bg-stone-400';
+    let labelMobText = 'Nuvem';
 
     if (this.status === 'connected') {
-      pill.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-sm cursor-pointer hover:bg-emerald-100 transition';
-      dot.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
-      label.textContent = customText || 'Nuvem Conectada';
+      if (pill) pill.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-sm cursor-pointer hover:bg-emerald-100 transition';
+      dotClass = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+      if (label) label.textContent = customText || 'Nuvem Conectada';
+      labelMobText = 'Online';
     } else if (this.status === 'connecting') {
-      pill.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-300 shadow-sm cursor-pointer';
-      dot.className = 'w-2 h-2 rounded-full bg-amber-500 animate-ping';
-      label.textContent = customText || 'Conectando à Nuvem...';
+      if (pill) pill.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-300 shadow-sm cursor-pointer';
+      dotClass = 'w-2 h-2 rounded-full bg-amber-500 animate-ping';
+      if (label) label.textContent = customText || 'Conectando à Nuvem...';
+      labelMobText = 'Conectando';
     } else if (this.status === 'error') {
-      pill.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-50 text-rose-800 border border-rose-300 shadow-sm cursor-pointer hover:bg-rose-100 transition';
-      dot.className = 'w-2 h-2 rounded-full bg-rose-500';
-      label.textContent = customText || 'Erro Nuvem (Verificar)';
+      if (pill) pill.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-50 text-rose-800 border border-rose-300 shadow-sm cursor-pointer hover:bg-rose-100 transition';
+      dotClass = 'w-2 h-2 rounded-full bg-rose-500';
+      if (label) label.textContent = customText || 'Erro Nuvem (Verificar)';
+      labelMobText = 'Erro';
     } else {
       // Disconnected
-      pill.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold bg-stone-100 text-stone-700 border border-stone-300 shadow-sm cursor-pointer hover:bg-stone-200 transition';
-      dot.className = 'w-2 h-2 rounded-full bg-stone-400';
-      label.textContent = customText || 'Conectar Firebase';
+      if (pill) pill.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold bg-stone-100 text-stone-700 border border-stone-300 shadow-sm cursor-pointer hover:bg-stone-200 transition';
+      dotClass = 'w-2 h-2 rounded-full bg-stone-400';
+      if (label) label.textContent = customText || 'Conectar Firebase';
+      labelMobText = 'Offline';
     }
+
+    if (dot) dot.className = dotClass;
+    if (dotMob) dotMob.className = dotClass;
+    if (labelMob) labelMob.textContent = labelMobText;
   }
 };
