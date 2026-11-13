@@ -9,6 +9,7 @@ const FirebaseService = {
   currentUser: null,
   isInitialized: false,
   unsubscribeSnapshot: null,
+  unsubscribePermissions: null,
   status: 'disconnected', // 'connected' | 'connecting' | 'disconnected' | 'error'
 
   /**
@@ -150,6 +151,10 @@ const FirebaseService = {
       this.unsubscribeSnapshot();
       this.unsubscribeSnapshot = null;
     }
+    if (this.unsubscribePermissions) {
+      this.unsubscribePermissions();
+      this.unsubscribePermissions = null;
+    }
     if (this.auth) {
       await this.auth.signOut();
     }
@@ -178,6 +183,118 @@ const FirebaseService = {
     if (code === 'auth/operation-not-allowed') return 'O provedor de Email/Senha precisa ser ativado no Firebase Console.';
     if (code === 'auth/too-many-requests') return 'Muitas tentativas incorretas. Aguarde alguns instantes.';
     return error.message || 'Erro ao autenticar.';
+  },
+
+  /**
+   * Registra ou verifica a permissão do usuário no Firestore
+   */
+  async checkAndRegisterPermission(user) {
+    if (!this.db || !user) return { status: 'pending', role: 'member' };
+
+    const permDoc = this.db.collection('financas_app').doc('permissoes');
+    try {
+      const snap = await permDoc.get();
+      let data = snap.exists ? snap.data() : {};
+
+      if (!snap.exists || Object.keys(data).length === 0) {
+        // Primeiro usuário a se cadastrar vira Administrador mestre automaticamente aprovado
+        data[user.uid] = {
+          email: user.email,
+          status: 'approved',
+          role: 'admin',
+          createdAt: Date.now()
+        };
+        await permDoc.set(data);
+        return data[user.uid];
+      }
+
+      if (!data[user.uid]) {
+        // Novo membro se cadastrando: entra como 'pending' aguardando o admin autorizar
+        data[user.uid] = {
+          email: user.email,
+          status: 'pending',
+          role: 'member',
+          createdAt: Date.now()
+        };
+        await permDoc.set(data);
+        return data[user.uid];
+      }
+
+      return data[user.uid];
+    } catch (e) {
+      console.error('Erro ao verificar permissão:', e);
+      return { status: 'pending', role: 'member' };
+    }
+  },
+
+  /**
+   * Escuta atualizações de permissões em tempo real
+   */
+  startPermissionsListener(callback) {
+    if (!this.db) return;
+    if (this.unsubscribePermissions) {
+      this.unsubscribePermissions();
+    }
+    const permDoc = this.db.collection('financas_app').doc('permissoes');
+    this.unsubscribePermissions = permDoc.onSnapshot((snap) => {
+      if (snap.exists) {
+        callback(snap.data() || {});
+      }
+    }, (err) => {
+      console.warn('Aviso no listener de permissões:', err);
+    });
+  },
+
+  /**
+   * Admin autoriza um membro
+   */
+  async approveMember(uid) {
+    if (!this.db) return false;
+    const permDoc = this.db.collection('financas_app').doc('permissoes');
+    const snap = await permDoc.get();
+    if (snap.exists) {
+      const data = snap.data();
+      if (data[uid]) {
+        data[uid].status = 'approved';
+        await permDoc.set(data);
+        return true;
+      }
+    }
+    return false;
+  },
+
+  /**
+   * Admin bloqueia um membro
+   */
+  async blockMember(uid) {
+    if (!this.db) return false;
+    const permDoc = this.db.collection('financas_app').doc('permissoes');
+    const snap = await permDoc.get();
+    if (snap.exists) {
+      const data = snap.data();
+      if (data[uid]) {
+        data[uid].status = 'blocked';
+        await permDoc.set(data);
+        return true;
+      }
+    }
+    return false;
+  },
+
+  /**
+   * Admin remove um membro da lista
+   */
+  async deleteMember(uid) {
+    if (!this.db) return false;
+    const permDoc = this.db.collection('financas_app').doc('permissoes');
+    const snap = await permDoc.get();
+    if (snap.exists) {
+      const data = snap.data();
+      delete data[uid];
+      await permDoc.set(data);
+      return true;
+    }
+    return false;
   },
 
   /**

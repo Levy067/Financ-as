@@ -125,6 +125,13 @@
           <i data-lucide="pie-chart" class="w-4 h-4 text-purple-300"></i>
           <span>Gráficos & Análise</span>
         </button>
+
+        <!-- Admin Only: Gerenciar Acessos -->
+        <button id="nav-btn-members" onclick="openModal('members')" class="hidden nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors text-stone-200 hover:text-white">
+          <i data-lucide="users" class="w-4 h-4 text-emerald-300"></i>
+          <span>Autorizar Membros</span>
+          <span id="badge-pending-members" class="hidden ml-auto text-[10px] font-bold py-0.5 px-2 bg-amber-400 text-amber-950 rounded-full animate-bounce">0</span>
+        </button>
       </nav>
     </div>
 
@@ -989,6 +996,76 @@
             <i data-lucide="shield" class="w-3.5 h-3.5 text-emerald-600"></i>
             <span>Protegido por Google Firebase Authentication</span>
           </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TELA: AGUARDANDO AUTORIZAÇÃO DO ADMINISTRADOR ================= -->
+  <div id="pending-approval-overlay" class="fixed inset-0 z-50 bg-[#FAF8F5] flex items-center justify-center p-4 hidden">
+    <div class="max-w-md w-full bg-white rounded-3xl border border-[#EAE4DA] shadow-2xl p-8 text-center space-y-5 animate-scaleUp">
+      <div class="w-16 h-16 mx-auto rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center shadow-inner">
+        <i data-lucide="clock-alert" class="w-8 h-8"></i>
+      </div>
+
+      <div>
+        <span class="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full">
+          Aprovação Necessária
+        </span>
+        <h3 class="text-xl font-black text-slate-800 mt-2">Acesso em Análise</h3>
+        <p class="text-xs text-slate-600 mt-2 leading-relaxed">
+          Olá, <strong id="pending-user-email">seu@email.com</strong>! Sua conta foi criada, mas por motivos de segurança, o <strong>administrador</strong> precisa autorizar seu acesso antes que você possa visualizar e editar as finanças.
+        </p>
+      </div>
+
+      <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-left text-xs text-slate-600 flex items-center gap-3">
+        <div class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping flex-shrink-0"></div>
+        <p class="text-[11px]">Assim que o administrador autorizar, esta tela será liberada <strong>automaticamente em tempo real</strong>.</p>
+      </div>
+
+      <div class="pt-2 flex flex-col gap-2">
+        <button onclick="checkApprovalStatusAgain()" class="w-full py-2.5 bg-terracotta-800 hover:bg-terracotta-900 text-white text-xs font-bold rounded-xl shadow transition">
+          Verificar Novamente
+        </button>
+        <button onclick="handleLogout()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl transition">
+          Sair da Conta
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: AUTORIZAR MEMBROS (ADMIN) ================= -->
+  <div id="modal-members" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden transform transition-all animate-scaleUp">
+      <div class="p-5 bg-terracotta-800 text-white flex items-center justify-between border-b border-terracotta-900">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-white/20 text-white flex items-center justify-center">
+            <i data-lucide="shield-check" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm">Controle de Membros & Acessos</h3>
+            <p class="text-[11px] text-terracotta-200">Apenas pessoas autorizadas por você podem acessar os dados</p>
+          </div>
+        </div>
+        <button onclick="closeModal('members')" class="text-stone-300 hover:text-white transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+          <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Solicitações e Usuários</h4>
+          <span id="members-count-badge" class="text-xs text-slate-500 font-medium">0 cadastrados</span>
+        </div>
+
+        <!-- Lista Dinâmica de Usuários -->
+        <div id="members-list-container" class="divide-y divide-slate-100 space-y-1">
+          <!-- Renderizado via Javascript -->
+        </div>
+
+        <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800 flex items-start gap-2">
+          <i data-lucide="info" class="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5"></i>
+          <p>Quando alguém da sua casa criar uma conta pelo link do site, o nome aparecerá aqui como <strong>Pendente</strong>. Basta você clicar em <strong>Autorizar</strong> para liberar o acesso dela na mesma hora.</p>
         </div>
       </div>
     </div>

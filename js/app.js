@@ -918,6 +918,8 @@ window.openModal = (type) => {
       document.getElementById('modal-status-dot').className = isConnected ? 'w-2.5 h-2.5 rounded-full bg-emerald-500' : 'w-2.5 h-2.5 rounded-full bg-stone-400';
       document.getElementById('modal-status-text').textContent = isConnected ? 'Conectado à nuvem (Firestore)' : 'Nenhum banco de dados conectado (Usando LocalStorage)';
       document.getElementById('btn-disconnect-firebase').classList.toggle('hidden', !isConnected);
+    } else if (type === 'members') {
+      renderMembersList(APP_STATE.allPermissions || {});
     }
     if (window.lucide) window.lucide.createIcons();
   }
@@ -1251,24 +1253,84 @@ function escapeHtml(str) {
    ========================================================= */
 
 // Trata mudança de estado de autenticação (usuário logado / deslogado)
-function handleAuthStateChanged(user) {
+async function handleAuthStateChanged(user) {
   APP_STATE.currentUser = user;
   const overlay = document.getElementById('auth-overlay');
   const userBadge = document.getElementById('user-profile-badge');
   const userEmail = document.getElementById('user-display-email');
   const userInitials = document.getElementById('user-avatar-initials');
+  const pendingOverlay = document.getElementById('pending-approval-overlay');
+  const navBtnMembers = document.getElementById('nav-btn-members');
 
   if (user) {
-    // Usuário autenticado com sucesso
     if (overlay) overlay.classList.add('hidden');
-    if (userBadge) userBadge.classList.remove('hidden');
     if (userEmail) userEmail.textContent = user.email || 'Usuário';
     if (userInitials) {
       const initial = (user.email ? user.email.charAt(0) : 'U').toUpperCase();
       userInitials.textContent = initial;
     }
 
-    // Iniciar escuta em tempo real no Firestore agora que está autenticado
+    // 1. Registrar ou checar permissão deste usuário
+    await FirebaseService.checkAndRegisterPermission(user);
+
+    // 2. Escutar permissões em tempo real
+    FirebaseService.startPermissionsListener((perms) => {
+      onPermissionsRealtimeUpdate(perms, user);
+    });
+
+  } else {
+    // Usuário deslogado
+    if (overlay) overlay.classList.remove('hidden');
+    if (pendingOverlay) pendingOverlay.classList.add('hidden');
+    if (userBadge) userBadge.classList.add('hidden');
+    if (navBtnMembers) navBtnMembers.classList.add('hidden');
+  }
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+// Atualização de permissões em tempo real
+function onPermissionsRealtimeUpdate(perms, user) {
+  APP_STATE.allPermissions = perms;
+  const myPerm = perms[user.uid] || { status: 'pending', role: 'member' };
+  APP_STATE.currentRole = myPerm.role;
+
+  const overlay = document.getElementById('auth-overlay');
+  const pendingOverlay = document.getElementById('pending-approval-overlay');
+  const userBadge = document.getElementById('user-profile-badge');
+  const navBtnMembers = document.getElementById('nav-btn-members');
+  const badgePending = document.getElementById('badge-pending-members');
+
+  if (myPerm.status === 'approved') {
+    // Usuário APROVADO: Acesso liberado ao aplicativo
+    if (overlay) overlay.classList.add('hidden');
+    if (pendingOverlay) pendingOverlay.classList.add('hidden');
+    if (userBadge) userBadge.classList.remove('hidden');
+
+    // Se for admin, exibe botão de membros e contador de pendentes
+    if (myPerm.role === 'admin' && navBtnMembers) {
+      navBtnMembers.classList.remove('hidden');
+
+      const pendingCount = Object.keys(perms).filter(uid => perms[uid].status === 'pending').length;
+      if (badgePending) {
+        if (pendingCount > 0) {
+          badgePending.textContent = pendingCount;
+          badgePending.classList.remove('hidden');
+        } else {
+          badgePending.classList.add('hidden');
+        }
+      }
+
+      // Se o modal de membros estiver aberto, atualiza a lista em tempo real
+      const modalMembers = document.getElementById('modal-members');
+      if (modalMembers && !modalMembers.classList.contains('hidden')) {
+        renderMembersList(perms);
+      }
+    } else if (navBtnMembers) {
+      navBtnMembers.classList.add('hidden');
+    }
+
+    // Iniciar escuta dos dados financeiros em tempo real
     FirebaseService.startRealtimeListener((cloudIncomes, cloudExpenses) => {
       APP_STATE.incomes = cloudIncomes;
       APP_STATE.expenses = cloudExpenses;
@@ -1278,17 +1340,142 @@ function handleAuthStateChanged(user) {
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       renderAll();
-      showToast('Nuvem atualizada em tempo real!');
     });
 
-  } else {
-    // Usuário NÃO autenticado -> exibe tela de login bloqueando a aplicação
-    if (overlay) overlay.classList.remove('hidden');
+  } else if (myPerm.status === 'pending') {
+    // Usuário PENDENTE: Bloqueia acesso e exibe aviso de aprovação do administrador
+    if (overlay) overlay.classList.add('hidden');
+    if (pendingOverlay) pendingOverlay.classList.remove('hidden');
     if (userBadge) userBadge.classList.add('hidden');
+    const pendingEmailSpan = document.getElementById('pending-user-email');
+    if (pendingEmailSpan) pendingEmailSpan.textContent = user.email;
+
+  } else if (myPerm.status === 'blocked') {
+    // Usuário BLOQUEADO
+    alert('Seu acesso a este aplicativo foi bloqueado pelo administrador.');
+    FirebaseService.signOut();
   }
 
   if (window.lucide) window.lucide.createIcons();
 }
+
+// Renderiza a lista de membros no modal do Admin
+function renderMembersList(perms) {
+  const container = document.getElementById('members-list-container');
+  const countBadge = document.getElementById('members-count-badge');
+  if (!container) return;
+
+  const uids = Object.keys(perms);
+  if (countBadge) countBadge.textContent = `${uids.length} membro(s)`;
+
+  if (uids.length === 0) {
+    container.innerHTML = `<p class="py-6 text-center text-xs text-slate-400">Nenhuma solicitação ou usuário registrado ainda.</p>`;
+    return;
+  }
+
+  // Ordenar: pendentes primeiro, depois aprovados
+  const sortedUids = [...uids].sort((a, b) => {
+    if (perms[a].status === 'pending') return -1;
+    if (perms[b].status === 'pending') return 1;
+    return 0;
+  });
+
+  const currentUid = APP_STATE.currentUser ? APP_STATE.currentUser.uid : null;
+
+  container.innerHTML = sortedUids.map(uid => {
+    const m = perms[uid];
+    const isSelf = uid === currentUid;
+    const isPending = m.status === 'pending';
+    const isApproved = m.status === 'approved';
+    const isBlocked = m.status === 'blocked';
+    const initial = (m.email ? m.email.charAt(0) : 'U').toUpperCase();
+
+    let statusPill = '';
+    if (isApproved) {
+      statusPill = `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Autorizado</span>`;
+    } else if (isPending) {
+      statusPill = `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 animate-pulse">Aguardando Aprovação</span>`;
+    } else {
+      statusPill = `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800">Bloqueado</span>`;
+    }
+
+    let actionsHtml = '';
+    if (isSelf) {
+      actionsHtml = `<span class="text-[11px] text-slate-400 italic">Você (Admin)</span>`;
+    } else if (isPending) {
+      actionsHtml = `
+        <div class="flex items-center gap-1.5">
+          <button onclick="approveUser('${uid}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1">
+            <i data-lucide="check" class="w-3.5 h-3.5"></i> Autorizar
+          </button>
+          <button onclick="blockUser('${uid}')" class="px-2 py-1 bg-slate-100 hover:bg-rose-100 text-slate-600 hover:text-rose-700 rounded-lg text-xs font-semibold transition">
+            Recusar
+          </button>
+        </div>
+      `;
+    } else if (isApproved) {
+      actionsHtml = `
+        <button onclick="blockUser('${uid}')" class="px-2.5 py-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-semibold transition" title="Bloquear Acesso">
+          Bloquear
+        </button>
+      `;
+    } else {
+      actionsHtml = `
+        <button onclick="approveUser('${uid}')" class="px-2.5 py-1 text-emerald-600 hover:bg-emerald-50 rounded-lg text-xs font-bold transition">
+          Reativar
+        </button>
+      `;
+    }
+
+    return `
+      <div class="py-3 flex items-center justify-between gap-3 text-xs">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-xl ${m.role === 'admin' ? 'bg-terracotta-800 text-white' : 'bg-slate-100 text-slate-700'} flex items-center justify-center font-bold text-xs">
+            ${initial}
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-800">${escapeHtml(m.email)}</span>
+              ${m.role === 'admin' ? '<span class="text-[9px] bg-terracotta-100 text-terracotta-800 font-bold px-1.5 py-0.2 rounded">ADMIN</span>' : ''}
+            </div>
+            <div class="mt-0.5">${statusPill}</div>
+          </div>
+        </div>
+        <div>${actionsHtml}</div>
+      </div>
+    `;
+  }).join('');
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+// Ações do Administrador
+window.approveUser = async (uid) => {
+  const ok = await FirebaseService.approveMember(uid);
+  if (ok) {
+    showToast('Acesso autorizado com sucesso!');
+  } else {
+    alert('Erro ao autorizar usuário.');
+  }
+};
+
+window.blockUser = async (uid) => {
+  if (confirm('Deseja bloquear o acesso deste usuário?')) {
+    const ok = await FirebaseService.blockMember(uid);
+    if (ok) {
+      showToast('Usuário bloqueado.');
+    } else {
+      alert('Erro ao bloquear usuário.');
+    }
+  }
+};
+
+window.checkApprovalStatusAgain = async () => {
+  if (APP_STATE.currentUser) {
+    await FirebaseService.checkAndRegisterPermission(APP_STATE.currentUser);
+    showToast('Status verificado.');
+  }
+};
 
 // Alternar entre modo "Entrar" e "Criar Acesso"
 window.setAuthMode = (mode) => {
