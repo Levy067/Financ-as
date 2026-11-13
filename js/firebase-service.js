@@ -34,6 +34,35 @@ const FirebaseService = {
   },
 
   /**
+   * Garante que o SDK Auth esteja inicializado de forma resiliente
+   */
+  async getAuth() {
+    if (this.auth) return this.auth;
+
+    const config = this.getConfig();
+    if (!config || !config.apiKey || !config.projectId) {
+      throw new Error('Configuração do Firebase não encontrada. Verifique as credenciais do projeto.');
+    }
+
+    if (typeof firebase === 'undefined' || typeof firebase.auth !== 'function') {
+      throw new Error('Carregando biblioteca do Firebase... Aguarde 2 segundos e tente novamente.');
+    }
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(config);
+    }
+
+    this.auth = firebase.auth();
+    if (firebase.firestore && !this.db) {
+      this.db = firebase.firestore();
+    }
+    this.isInitialized = true;
+    this.status = 'connected';
+    this.updateUIStatus();
+    return this.auth;
+  },
+
+  /**
    * Salva uma nova configuração de credenciais
    */
   saveConfig(config) {
@@ -48,6 +77,10 @@ const FirebaseService = {
     if (this.unsubscribeSnapshot) {
       this.unsubscribeSnapshot();
       this.unsubscribeSnapshot = null;
+    }
+    if (this.unsubscribePermissions) {
+      this.unsubscribePermissions();
+      this.unsubscribePermissions = null;
     }
     localStorage.removeItem('Firebase_User_Config');
     this.isInitialized = false;
@@ -86,16 +119,12 @@ const FirebaseService = {
         firebase.initializeApp(config);
       }
 
-      this.db = firebase.firestore();
-      if (firebase.auth) {
+      if (typeof firebase.auth === 'function') {
         this.auth = firebase.auth();
       }
 
-      // Habilitar persistência offline local do Firestore se possível
-      try {
-        await this.db.enablePersistence({ synchronizeTabs: true });
-      } catch (err) {
-        // Ignora erro se já ativado ou em abas múltiplas
+      if (typeof firebase.firestore === 'function') {
+        this.db = firebase.firestore();
       }
 
       this.isInitialized = true;
@@ -119,28 +148,32 @@ const FirebaseService = {
   /**
    * Inicializa o observador de estado de autenticação
    */
-  initAuth(onAuthChange) {
-    if (!this.auth) return;
-    this.auth.onAuthStateChanged((user) => {
-      this.currentUser = user;
-      if (onAuthChange) onAuthChange(user);
-    });
+  async initAuth(onAuthChange) {
+    try {
+      const auth = await this.getAuth();
+      auth.onAuthStateChanged((user) => {
+        this.currentUser = user;
+        if (onAuthChange) onAuthChange(user);
+      });
+    } catch (err) {
+      console.warn('Aviso ao inicializar Auth observer:', err);
+    }
   },
 
   /**
    * Login com Email e Senha
    */
   async signIn(email, password) {
-    if (!this.auth) throw new Error('Serviço de autenticação não inicializado.');
-    return await this.auth.signInWithEmailAndPassword(email, password);
+    const auth = await this.getAuth();
+    return await auth.signInWithEmailAndPassword(email, password);
   },
 
   /**
    * Criar nova conta familiar
    */
   async signUp(email, password) {
-    if (!this.auth) throw new Error('Serviço de autenticação não inicializado.');
-    return await this.auth.createUserWithEmailAndPassword(email, password);
+    const auth = await this.getAuth();
+    return await auth.createUserWithEmailAndPassword(email, password);
   },
 
   /**
@@ -165,8 +198,8 @@ const FirebaseService = {
    * Enviar email de redefinição de senha
    */
   async sendPasswordReset(email) {
-    if (!this.auth) throw new Error('Serviço de autenticação não inicializado.');
-    return await this.auth.sendPasswordResetEmail(email);
+    const auth = await this.getAuth();
+    return await auth.sendPasswordResetEmail(email);
   },
 
   /**
@@ -180,7 +213,7 @@ const FirebaseService = {
     if (code === 'auth/email-already-in-use') return 'Este email já está cadastrado. Alterne para a aba "Entrar".';
     if (code === 'auth/weak-password') return 'A senha deve ter no mínimo 6 caracteres.';
     if (code === 'auth/invalid-credential') return 'Email ou senha incorretos.';
-    if (code === 'auth/operation-not-allowed') return 'O provedor de Email/Senha precisa ser ativado no Firebase Console.';
+    if (code === 'auth/operation-not-allowed') return 'O provedor de E-mail/Senha precisa ser ativado no Firebase Console (Menu: Authentication -> Sign-in method -> E-mail/senha).';
     if (code === 'auth/too-many-requests') return 'Muitas tentativas incorretas. Aguarde alguns instantes.';
     return error.message || 'Erro ao autenticar.';
   },
